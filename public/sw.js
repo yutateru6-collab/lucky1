@@ -1,6 +1,6 @@
 /* Only app-shell resources are cached. User notes never enter Cache Storage. */
-const CACHE_NAME = 'lucky-shell-v1.0.0';
-const FILES = ['./', './index.html', './styles.css', './app.mjs', './decision.mjs', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
+const CACHE_NAME = 'lucky-shell-v2.0.0';
+const FILES = ['./', './index.html', './styles.css', './app.mjs', './decision.mjs', './games.mjs', './journal.mjs', './words.mjs', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES)).then(() => self.skipWaiting()));
 });

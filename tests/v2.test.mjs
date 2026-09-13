@@ -1,0 +1,40 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { playGame, randomInt } from '../public/games.mjs';
+import { dateKey, validDay, monthDays, normalizeEntry, parseEntries, loadEntries, putEntry, removeEntry, parseBackup, mergeEntries, RECORD_KEY, LEGACY_KEY } from '../public/journal.mjs';
+import { WORDS, dailyWord } from '../public/words.mjs';
+const rng = (...values) => { let i = 0; return { getRandomValues(a) { a[0] = values[Math.min(i++, values.length - 1)]; return a; } }; };
+const store = () => { const map = new Map(); return { getItem: k => map.get(k) ?? null, setItem: (k, v) => map.set(k, v), removeItem: k => map.delete(k) }; };
+const entry = (id = 'test-1') => ({ version: 2, id, note: '知らない曲を聴く', game: 'cards', result: 'yes', choice: 'no', feeling: 'relieved', beforeMood: 'nervous', beforeText: '少し迷う', reflection: '', createdAt: '2026-09-13T15:30:00.000Z', localDate: '2026-09-14' });
+test('coin and either chosen card are 50/50 at boundary', () => {
+ for (const card of [0, 1]) assert.deepEqual([0, 0xffffffff].map(n => playGame('cards', { card }, rng(n)).result).sort(), ['no', 'yes']);
+ assert.equal(playGame('coin', {}, rng(0x7fffffff)).result, 'yes'); assert.equal(playGame('coin', {}, rng(0x80000000)).result, 'no');
+});
+test('dice has three yes and three no faces', () => { const values = Array.from({ length: 6 }, (_, i) => playGame('dice', {}, rng(i))); assert.deepEqual(values.map(v => v.face), [1, 2, 3, 4, 5, 6]); assert.equal(values.filter(v => v.result === 'yes').length, 3); });
+test('rejection sampling rejects biased tail values', () => { assert.equal(randomInt(6, rng(0xffffffff, 4)), 4); assert.throws(() => randomInt(6, rng(0xffffffff))); });
+test('all 9 rock paper scissors combinations: 3 wins, 3 losses, 3 ties', () => {
+ const outcomes = Object.keys({ rock: 0, scissors: 1, paper: 2 }).flatMap(hand => [0, 1, 2].map(n => playGame('rps', { hand }, rng(n)).result));
+ for (const result of ['yes', 'no', null]) assert.equal(outcomes.filter(v => v === result).length, 3);
+ assert.equal(playGame('rps', { hand: 'rock' }, rng(1)).result, 'yes'); assert.equal(playGame('rps', { hand: 'rock' }, rng(2)).result, 'no');
+});
+test('invalid game inputs do not draw', () => { assert.throws(() => playGame('rps', { hand: '__proto__' })); assert.throws(() => playGame('cards', { card: 2 })); assert.throws(() => playGame('bad')); assert.throws(() => randomInt(0)); });
+test('calendar month grid is Monday-first, leap-year aware and includes 42 days', () => { const ds = monthDays(2028, 1); assert.equal(ds.length, 42); assert.equal(ds[0].getDay(), 1); assert.equal(ds.filter(d => d.getMonth() === 1).length, 29); assert.equal(new Set(ds.map(dateKey)).size, 42); });
+test('calendar uses local date, not UTC date', () => { assert.equal(dateKey(new Date(2026, 8, 14, 0, 30)), '2026-09-14'); assert.equal(normalizeEntry(entry()).localDate, '2026-09-14'); assert.ok(validDay('2028-02-29')); assert.ok(!validDay('2026-02-29')); assert.ok(!validDay('2026-13-01')); });
+test('legacy records migrate without modifying the legacy backup', () => {
+ const s = store(), old = { id: 'old-1', note: '初めてのお店', result: 'no', choice: 'yes', feeling: 'happy', createdAt: '2026-09-13T11:00:00.000Z' };
+ s.setItem(LEGACY_KEY, JSON.stringify([old])); const loaded = loadEntries(s);
+ assert.equal(loaded[0].game, 'coin'); assert.equal(loaded[0].feeling, 'happy'); assert.equal(loaded[0].version, 2); assert.equal(loaded[0].beforeMood, null);
+ putEntry(entry(), s); assert.equal(loadEntries(s).length, 2); assert.deepEqual(JSON.parse(s.getItem(LEGACY_KEY)), [old]);
+});
+test('notes, before/after feelings and independent choice roundtrip', () => { const s = store(); putEntry(entry(), s); assert.deepEqual(loadEntries(s)[0], entry()); });
+test('same session id updates instead of adding duplicates', () => { const s = store(); putEntry(entry(), s); putEntry({ ...entry(), reflection: '追記' }, s); assert.equal(loadEntries(s).length, 1); assert.equal(loadEntries(s)[0].reflection, '追記'); });
+test('deletion does not resurrect the legacy record', () => { const s = store(); s.setItem(LEGACY_KEY, JSON.stringify([entry()])); removeEntry('test-1', s); assert.equal(loadEntries(s).length, 0); });
+test('malformed storage prevents overwrite instead of erasing entries', () => { const s = store(); s.setItem(RECORD_KEY, '{broken'); assert.throws(() => putEntry(entry(), s)); assert.equal(s.getItem(RECORD_KEY), '{broken'); });
+test('quota errors surface, original record remains', () => { const s = store(); putEntry(entry(), s); s.setItem = () => { throw new Error('quota'); }; assert.throws(() => putEntry(entry('new'), s)); assert.equal(loadEntries(s).length, 1); });
+test('schema rejects prototype values, invalid dates, future version, too-long notes', () => { for (const invalid of [{ game: '__proto__' }, { beforeMood: 'constructor' }, { choice: 'constructor' }, { localDate: '2026-02-30' }, { version: 3 }, { note: 'x'.repeat(241) }]) assert.equal(normalizeEntry({ ...entry(), ...invalid }), null); });
+test('backups validate all entries and merge non-destructively', () => {
+ const s = store(); putEntry(entry(), s); const incoming = parseBackup(JSON.stringify({ app: 'lucky', version: 2, entries: [{ ...entry(), reflection: 'do not replace' }, entry('new')] }));
+ mergeEntries(incoming, s); assert.equal(loadEntries(s).length, 2); assert.equal(loadEntries(s).find(e => e.id === 'test-1').reflection, ''); assert.throws(() => parseBackup('{"app":"other"}')); assert.throws(() => parseEntries([entry(), {}]));
+});
+test('storage cap does not silently discard records', () => { const s = store(); s.setItem(RECORD_KEY, JSON.stringify(Array.from({ length: 1000 }, (_, i) => entry(`id-${i}`)))); assert.throws(() => putEntry(entry(), s)); assert.equal(loadEntries(s).length, 1000); });
+test('words are unique and daily selection stable; proverbs have sources', () => { assert.equal(new Set(WORDS.map(w => w.id)).size, WORDS.length); assert.equal(dailyWord('2026-09-13'), dailyWord('2026-09-13')); for (const w of WORDS.filter(w => w.category === 'proverb')) assert.match(w.source, /^https:\/\/www\.kanjipedia\.jp\/kotoba\//); });

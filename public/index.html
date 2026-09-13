@@ -1,76 +1,92 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#f6f5ef">
-  <meta name="description" content="決めるのはあなた。きっかけは偶然。日常の小さな迷いに、50/50のコインを。出た結果には従わなくても大丈夫。">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="lucky">
-  <title>lucky — 決めるのはあなた。きっかけは偶然。</title>
-  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css">
-  <script src="./app.mjs" type="module"></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#faf8f2"><meta name="description" content="小さな迷いを、ちいさな遊びに。コイン・じゃんけん・カード・サイコロ。メモと気持ちをカレンダーに残すlucky。">
+<meta name="lucky-version" content="2.0.0"><title>lucky — きっかけは、偶然。</title>
+<link rel="icon" href="./icons/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="./icons/apple-touch-icon.png"><link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./styles.css"><script type="module" src="./app.mjs"></script>
 </head>
 <body>
-  <a href="#main" class="skip-link">メインへ移動</a>
-  <div class="app-shell">
-    <header class="site-header">
-      <a class="brand" href="#home" aria-label="lucky ホームへ"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 18C-1 2 2 32 18 20C2 41 32 38 20 22C41 38 38 8 22 20C38-1 8 2 20 18Z"/></svg><span>lucky<span class="brand-dot">.</span></span></a>
-      <span class="header-note">日常に、ちいさな偶然を。</span>
-      <button id="theme-toggle" class="icon-button" aria-label="ダークモードに切り替える" title="表示モードを切り替える"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.8A8.7 8.7 0 0 1 8.2 3.8a8.8 8.8 0 1 0 12 12Z"/></svg></button>
-    </header>
-    <main id="main">
-      <section id="home-view" aria-labelledby="home-title">
-        <div class="play-layout">
-          <div class="intro">
-            <div class="eyebrow"><span class="tiny-flower">✳</span> A LITTLE CHANCE</div>
-            <h1 id="home-title">いつもの自分に、<br><span>ちいさな偶然を。</span></h1>
-            <p class="intro-copy">やろうかな。やめようかな。<br>そんな迷いに、コインをひとつ。</p>
-            <p class="freedom"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4 8 9 8 9s8-5 8-9V6l-8-3Z"/><path d="m8.5 12 2.2 2.2 4.8-4.8"/></svg>出た結果には、従わなくてもいい。</p>
-            <div class="desktop-aside"><div class="path-art" aria-hidden="true"><span>いつもの道</span><i></i><b>?</b><em>まだ知らないほう</em></div><p>決めるのはあなた。<br>きっかけは偶然。</p></div>
-          </div>
-          <div class="play-panel" id="play-panel">
-            <div class="panel-top"><span id="panel-label">小さな迷いに、50 / 50。</span><span class="live-dot" aria-hidden="true"></span></div>
-            <div id="setup-area">
-              <div class="coin-stage">
-                <span class="orbit orbit-one" aria-hidden="true"></span><span class="orbit orbit-two" aria-hidden="true"></span>
-                <span class="spark spark-one" aria-hidden="true">✦</span><span class="spark spark-two" aria-hidden="true">＋</span>
-                <button id="coin-button" class="coin-button" aria-label="コインを投げる。やる・やらない、それぞれ50パーセント">
-                  <span class="coin" id="coin"><span class="coin-face coin-front"><span class="coin-rim"></span><svg viewBox="0 0 80 80" aria-hidden="true"><path d="M40 36C-2 4 4 64 36 40C4 82 64 76 40 44C82 76 76 16 44 40C76-2 16 4 40 36Z"/></svg><span class="coin-word">a little lucky</span></span><span class="coin-face coin-back"><span class="coin-rim"></span><svg viewBox="0 0 80 80" aria-hidden="true"><path d="M52 15a26 26 0 1 0 13 43A27 27 0 0 1 52 15Z"/></svg><span class="coin-word">your own pace</span></span></span>
-                </button>
-                <span class="coin-shadow" aria-hidden="true"></span>
-              </div>
-              <div class="odds" aria-label="やる50パーセント、やらない50パーセント"><span><i class="yes-dot"></i>やる <b>50<small>%</small></b></span><span class="odds-slash">/</span><span><i class="no-dot"></i>やらない <b>50<small>%</small></b></span></div>
-              <details class="note-details" id="note-details"><summary>迷っていることを書く <span>任意</span><b aria-hidden="true">＋</b></summary><label class="sr-only" for="decision-note">迷っていること（120文字まで）</label><input id="decision-note" type="text" maxlength="120" placeholder="例：気になるお店に入ってみる？" autocomplete="off"><small>書かなくても使えます。入力内容は外部に送信しません。</small></details>
-              <button id="toss-button" class="primary-button"><span>コインを投げる</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
-              <p id="toss-status" class="micro-copy" role="status" aria-live="polite">どちらが出ても、あなたが選んでいい。</p>
-            </div>
-            <div id="result-area" hidden>
-              <div id="result-emblem" class="result-emblem" aria-hidden="true">↗</div>
-              <p class="result-eyebrow">コインが出したのは</p>
-              <h2 id="result-title" tabindex="-1">やる</h2>
-              <p id="result-note" class="result-note" hidden></p>
-              <p class="result-freedom">その通りでも、逆でも。<br>最後に決めるのは、あなたです。</p>
-              <fieldset class="choice-field"><legend>いま、あなたはどうしたい？</legend><div class="choice-grid"><button type="button" data-choice="yes" class="choice-button" aria-pressed="false">やってみる <span aria-hidden="true">↗</span></button><button type="button" data-choice="no" class="choice-button" aria-pressed="false">今回はやめておく <span aria-hidden="true">○</span></button></div><button type="button" data-choice="undecided" class="undecided-button" aria-pressed="false">まだ決めない</button></fieldset>
-              <div id="reflection" class="reflection" hidden><p id="choice-message" role="status"></p><fieldset class="feelings"><legend>結果を見たときの気持ち <small>任意</small></legend><div><button data-feeling="happy" aria-pressed="false">うれしい</button><button data-feeling="relieved" aria-pressed="false">ほっとした</button><button data-feeling="disappointed" aria-pressed="false">少し残念</button><button data-feeling="unsure" aria-pressed="false">わからない</button></div></fieldset><button id="save-button" class="primary-button">あしあとに残す <span aria-hidden="true">＋</span></button><p class="micro-copy">この端末だけに保存。残さなくても大丈夫。</p></div>
-              <button id="reset-button" class="text-button">残さず、ホームに戻る <span aria-hidden="true">↩</span></button>
-            </div>
-            <div id="safety-area" hidden><div class="safety-icon" aria-hidden="true">!</div><h2 id="safety-title" tabindex="-1">これは、コインに<br>任せないでおこう。</h2><p>命・健康・安全・大きなお金に関わることは、このアプリでは決めません。</p><p>状況を確かめて、必要なら周りの人や専門家に相談してください。緊急時は、アプリより安全の確保を優先してください。</p><button id="safety-back" class="primary-button">ホームに戻る</button></div>
-          </div>
-        </div>
-        <p class="scope-note">日常の小さな迷いのために。<a href="#about">安全に使うための約束</a><span id="offline-indicator" hidden> · オフライン</span></p>
-      </section>
-      <section id="history-view" class="secondary-view" aria-labelledby="history-title" hidden><div class="eyebrow">YOUR LITTLE CHOICES</div><h1 id="history-title" tabindex="-1">あなたの、あしあと。</h1><p class="section-copy">偶然をきっかけに、自分で選んだこと。<br>従った回数も、連続記録も、競いません。</p><div class="history-toolbar"><span id="history-count">まだ、まっさら。</span><button id="clear-history" class="text-button danger" hidden>すべて削除</button></div><div id="history-list"></div><p class="privacy-note">保存先は、このブラウザだけ。ログイン・端末間同期はありません。<br>ブラウザのデータを消すと、あしあとも消えます。</p></section>
-      <section id="about-view" class="secondary-view" aria-labelledby="about-title" hidden><div class="eyebrow">OUR LITTLE PROMISE</div><h1 id="about-title" tabindex="-1">決めるのは、あなた。</h1><p class="section-copy">lucky は、あなたの代わりに人生を決めるものではありません。迷ったときの、ちいさなきっかけです。</p><div class="promise-grid"><article><span>01</span><h2>どちらも、50％。</h2><p>毎回「やる」「やらない」をそれぞれ50％で抽選します。気分や履歴で、こっそり確率を変えることはありません。続けて同じ結果が出ることもあります。</p></article><article><span>02</span><h2>従わなくて、いい。</h2><p>「やる」が出ても、見送っていい。「やらない」が出ても、やっていい。まだ決めなくても大丈夫。ペナルティも、連続記録もありません。</p></article><article><span>03</span><h2>小さな迷いだけに。</h2><p>新しいお店に入るか。気になる本を開くか。そんな、どちらを選んでも安全なことに。声をかけるときは、相手の意思と周囲の安全を大切にしてください。</p><p class="important">命・医療・緊急時の救助・危険な行動・違法行為・大きなお金や借金など、重大な判断には使わないでください。</p><p>入力には一部の言葉を検出する補助がありますが、危険をすべて判断できる機能ではありません。</p></article><article><span>04</span><h2>思い出は、手元に。</h2><p>入力内容・抽選結果・保存したあしあとを、アプリから外部サーバーへ送信することはありません。保存は任意です。共用端末では、個人的な内容の保存に気をつけてください。</p><p>ページ配信に伴うIPアドレスなどのアクセス情報は、配信サービス側で取り扱われる場合があります。</p></article></div><div class="install-note"><h2>ホーム画面に、コインをひとつ。</h2><p>対応ブラウザの「ホーム画面に追加」や「インストール」から追加できます。iPhoneではSafariの共有メニューを確認してください。初回の読み込み・保存が完了した後は、オフラインでも使えます。</p></div><p class="version">lucky 1.0.0 · いつもの自分なら、選ばないほうへ。</p></section>
-      <noscript><p class="noscript">コインを投げるには、ブラウザのJavaScriptを有効にしてください。</p></noscript>
-    </main>
-    <nav class="bottom-nav" aria-label="メインナビゲーション"><a href="#home" class="nav-item" data-route="home" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v10m-3-2h6"/></svg><span>コイン</span></a><a href="#history" class="nav-item" data-route="history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 20c-3-4 2-5 5-8s-2-5 1-8m-8 6h1m11 7h1"/><circle cx="13" cy="4" r="1.5"/><circle cx="7" cy="20" r="1.5"/></svg><span>あしあと</span></a><a href="#about" class="nav-item" data-route="about"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v6m0-10v1"/></svg><span>このアプリ</span></a></nav>
+<svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M5 5l14 14M5 19L19 5"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1M5.6 18.4l2.1-2.1m8.6-8.6 2.1-2.1"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="4"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h1m6 0h1m-8 3h1"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5C8 2 4 3 3 4v16c3-2 6-2 9 0 3-2 6-2 9 0V4c-1-1-5-2-9 1Zm0 0v15"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14A8 8 0 0 1 10 4a8.5 8.5 0 1 0 10 10Z"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20S3 14 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-9 12-9 12Z"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="18" r="2"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+</defs></svg>
+<a class="skip-link" href="#main">本文へ移動</a>
+<header class="app-header">
+  <a class="brand" href="#home" aria-label="lucky ホーム"><svg><use href="#i-spark"/></svg>lucky<span class="brand-dot">.</span></a>
+  <span class="header-note">きっかけは、偶然。</span>
+  <div class="header-actions"><span id="offline-indicator" class="badge" hidden>オフライン</span><button id="theme-toggle" class="icon-button" aria-label="ダークモードに切り替える"><svg><use href="#i-moon"/></svg></button><button id="settings-open" class="icon-button" aria-label="設定とデータ管理"><svg><use href="#i-settings"/></svg></button></div>
+</header>
+<nav class="main-nav" aria-label="メインメニュー">
+  <a href="#home" data-route="home"><svg><use href="#i-play"/></svg><span>あそぶ</span></a>
+  <a href="#calendar" data-route="calendar"><svg><use href="#i-calendar"/></svg><span>カレンダー</span></a>
+  <a href="#words" data-route="words"><svg><use href="#i-book"/></svg><span>ことば</span></a>
+  <p class="nav-caption">いつもの自分に、<br>ちいさな偶然を。</p>
+</nav>
+<main id="main" tabindex="-1">
+<section id="home-view" class="view" aria-labelledby="home-title">
+  <div class="page-heading"><div><p class="eyebrow" id="today-label"></p><h1 id="home-title">小さな迷いを、<em>あそびに。</em></h1><p class="subheading">決めるのはあなた。結果に従わなくてもいい。</p></div><span class="heading-flower" aria-hidden="true">✳</span></div>
+  <div id="setup-grid" class="play-grid">
+    <section class="panel note-panel" aria-labelledby="note-title">
+      <div class="section-heading"><h2 id="note-title"><span class="step-number">01</span>いまの気持ちを置いてみる</h2><span class="optional">任意</span></div>
+      <label for="decision-note">何をしようか、迷ってる？</label>
+      <textarea id="decision-note" maxlength="240" rows="2" placeholder="例：気になっていたお店に入ってみる"></textarea>
+      <fieldset class="mood-field"><legend>それに対する、いまの気持ち</legend><div id="mood-options" class="mood-options"></div></fieldset>
+      <details class="feeling-details"><summary>気持ちを、もう少し書く<span>＋</span></summary><label class="sr-only" for="before-text">抽選前の気持ちのメモ</label><textarea id="before-text" maxlength="500" rows="3" placeholder="楽しみだけど、一人で入るのはちょっと緊張する。"></textarea></details>
+      <p class="quiet-note"><svg><use href="#i-lock"/></svg>書かずに、そのまま遊んでもOK。</p>
+      <div class="desktop-note" aria-hidden="true"><span>↗</span><p>大きな一歩じゃなくていい。<br>今日を、ほんの少し違う日に。</p></div>
+    </section>
+    <section class="panel game-panel" aria-labelledby="game-title">
+      <div class="section-heading"><h2 id="game-title"><span class="step-number">02</span>きっかけの選び方</h2><span class="fair-badge">50 / 50</span></div>
+      <div class="game-options" role="group" aria-label="遊び方を選ぶ">
+        <button data-game="coin" aria-pressed="true"><span class="mode-icon mode-coin" aria-hidden="true">✳</span><span>コイン</span></button>
+        <button data-game="rps" aria-pressed="false"><span class="mode-icon" aria-hidden="true">✌️</span><span>じゃんけん</span></button>
+        <button data-game="cards" aria-pressed="false"><span class="mode-icon mode-cards" aria-hidden="true">✧</span><span>カード</span></button>
+        <button data-game="dice" aria-pressed="false"><span class="mode-icon" aria-hidden="true">⚄</span><span>サイコロ</span></button>
+      </div>
+      <div id="game-stage" class="game-stage" data-mode="coin">
+        <span class="stage-spark s1" aria-hidden="true">✧</span><span class="stage-spark s2" aria-hidden="true">＋</span>
+        <div id="coin-scene" class="scene"><div class="big-coin" aria-hidden="true"><span>✳</span><small>a little chance</small></div><p>ひとつのコインに、<br>今日のきっかけを。</p></div>
+        <div id="rps-scene" class="scene" hidden><div class="hand-display" id="opponent-hand" aria-hidden="true">✊</div><p id="rps-prompt">あなたの手を選んでね。</p><div class="hand-options" role="group" aria-label="じゃんけんの手"><button data-hand="rock" aria-label="グーを出す">✊<small>グー</small></button><button data-hand="scissors" aria-label="チョキを出す">✌️<small>チョキ</small></button><button data-hand="paper" aria-label="パーを出す">✋<small>パー</small></button></div></div>
+        <div id="cards-scene" class="scene" hidden><div class="card-options"><button class="draw-card" data-card="0" aria-label="左のカードを引く"><span>✧</span><small>lucky</small></button><button class="draw-card" data-card="1" aria-label="右のカードを引く"><span>✧</span><small>lucky</small></button></div><p>気になる1枚をタップ。</p></div>
+        <div id="dice-scene" class="scene" hidden><div class="big-dice" id="dice-face" aria-hidden="true">⚄</div><p>ころんと転がして、<br>いつもと違うほうへ。</p></div>
+      </div>
+      <p id="game-rule" class="game-rule">表は「やる」、裏は「やらない」。どちらも50%。</p>
+      <button id="play-button" class="primary large"><span id="play-label">コインを投げる</span><svg><use href="#i-arrow"/></svg></button>
+      <p id="play-status" class="play-status" role="status" aria-live="polite"></p>
+      <p class="safety-note">命・医療・危険・大きなお金など、重大な判断には使わないでください。</p>
+    </section>
   </div>
-  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <dialog id="delete-dialog"><h2 id="delete-title">あしあとを削除しますか？</h2><p>削除したあしあとは、元に戻せません。</p><div class="dialog-actions"><button id="cancel-delete" class="choice-button">残しておく</button><button id="confirm-delete" class="choice-button danger">削除する</button></div></dialog>
-</body>
-</html>
+  <section id="result-panel" class="panel result-panel" hidden aria-labelledby="result-title">
+    <div class="result-visual"><p class="eyebrow">A LITTLE CHANCE</p><div id="result-symbol" class="result-symbol" aria-hidden="true">↗</div><p id="result-game" class="game-rule"></p><h2 id="result-title" tabindex="-1"></h2><p id="result-detail" class="muted"></p><p class="result-freedom">これは命令でも、正解でもありません。<br>ここからは、あなたが選んでいい。</p></div>
+    <div class="result-form"><div id="result-context" class="context-box"></div><h3>あなたは、どうする？</h3><div class="choice-options" role="group" aria-label="自分の選択"><button data-choice="yes" aria-pressed="false">やってみる</button><button data-choice="no" aria-pressed="false">見送る</button><button data-choice="undecided" aria-pressed="false">まだ決めない</button></div><fieldset><legend>結果を見た、いまの気持ち <span class="optional">任意</span></legend><div id="after-options" class="after-options"></div></fieldset><label for="reflection">ひとこと <span class="optional">任意</span></label><textarea id="reflection" rows="2" maxlength="1000" placeholder="結果を見て思ったこと。あとから追記もできます。"></textarea><button id="save-button" class="primary"><svg><use href="#i-calendar"/></svg>カレンダーに残す</button><p class="quiet-note">選択は「まだ決めない」のままでも保存できます。</p><button id="new-button" class="text-button">記録せず、次の選択へ →</button></div>
+  </section>
+  <aside class="home-word"><div><span class="eyebrow">今日のひとこと</span><p id="home-word-text"></p></div><a href="#words" class="icon-button" aria-label="ことばをもっと読む"><svg><use href="#i-arrow"/></svg></a></aside>
+</section>
+<section id="calendar-view" class="view" hidden aria-labelledby="calendar-title">
+  <div class="page-heading"><div><p class="eyebrow">MY LITTLE DAYS</p><h1 id="calendar-title" tabindex="-1">選んだ日々を、<em>残そう。</em></h1><p class="subheading">迷ったことも、そのときの気持ちも。</p></div><button id="backup-open" class="icon-button" aria-label="記録のバックアップと設定"><svg><use href="#i-settings"/></svg></button></div>
+  <div class="calendar-layout"><section class="panel calendar-panel" aria-label="月ごとの記録"><div class="month-toolbar"><button id="prev-month" class="icon-button" aria-label="前の月"><svg><use href="#i-back"/></svg></button><h2 id="month-label" aria-live="polite"></h2><button id="next-month" class="icon-button" aria-label="次の月"><svg class="rotate"><use href="#i-back"/></svg></button></div><div class="weekdays" aria-hidden="true"><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span><span>日</span></div><div id="calendar-days" class="calendar-days" role="group" aria-label="日付を選ぶ"></div><div class="calendar-bottom"><span id="month-count" class="muted"></span><button id="today-button" class="text-button">今日へ</button></div><p class="quiet-note">● は記録のある日。空白の日があっても大丈夫。</p></section>
+  <section class="day-panel" aria-labelledby="day-title"><div class="day-heading"><h2 id="day-title"></h2><span id="day-count" class="badge"></span></div><div id="day-records"></div></section></div>
+  <p class="privacy-footer"><svg><use href="#i-lock"/></svg>記録はこのブラウザだけに保存。端末間の自動同期はありません。</p>
+</section>
+<section id="words-view" class="view" hidden aria-labelledby="words-title"><div class="page-heading"><div><p class="eyebrow">A POCKETFUL OF WORDS</p><h1 id="words-title" tabindex="-1">こころに、<em>小さな追い風。</em></h1><p class="subheading">動きたい日にも、ひと休みしたい日にも。</p></div><span class="heading-flower" aria-hidden="true">✺</span></div>
+  <div id="featured-word" class="featured-word"></div><div class="word-filters" role="group" aria-label="ことばの種類"><button data-filter="all" aria-pressed="true">すべて</button><button data-filter="step" aria-pressed="false">小さな一歩</button><button data-filter="rest" aria-pressed="false">ひと休み</button><button data-filter="proverb" aria-pressed="false">ことわざ</button><button data-filter="favorites" aria-pressed="false">♡ お気に入り</button></div><div id="word-list" class="word-list"></div><p class="privacy-footer">「lucky オリジナル」は、このアプリのための文章です。実在の人物の名言ではありません。</p>
+</section>
+</main>
+<dialog id="settings-dialog" aria-labelledby="settings-title"><div class="dialog-heading"><h2 id="settings-title">設定とデータ管理</h2><button data-close="settings-dialog" class="icon-button" aria-label="設定を閉じる"><svg><use href="#i-close"/></svg></button></div><p>メモや気持ちは、このブラウザに保存されます。アプリから外部サーバーへ送信しません。</p><p class="muted">ブラウザのデータ削除・端末変更・URL変更で、記録が見えなくなることがあります。大切な記録はバックアップしてください。</p><div class="settings-actions"><button id="export-button" class="secondary">記録をバックアップする</button><button id="import-button" class="secondary">バックアップを読み込む</button></div><input id="import-file" type="file" accept="application/json,.json" hidden><p class="quiet-note">バックアップは文章が読めるJSONファイルです。共有先や保管場所にご注意ください。お気に入り・テーマ設定は含みません。</p><hr><h3>どの遊び方も、やる／やらないは50％</h3><p class="muted">じゃんけんのあいこは決着まで再挑戦。確率を履歴で変えることはありません。同じ結果が続く場合もあります。</p><p class="muted">重大な判断は抽選では決めないでください。入力チェックは一部の言葉に反応する補助で、安全を保証するものではありません。</p><p class="version-label">lucky 2.0.0 · 決めるのはあなた。きっかけは偶然。</p></dialog>
+<dialog id="safety-dialog" aria-labelledby="safety-title"><div class="dialog-heading"><h2 id="safety-title">偶然に任せないほうがいいこと。</h2></div><p>この内容は、命・医療・危険・大きなお金などの判断に関わる可能性があります。抽選せず、状況を確かめたり、信頼できる人に相談したりしてください。</p><p class="muted">これは一部の言葉を検出する補助機能です。内容を正確に理解しているわけではありません。</p><button class="primary" data-close="safety-dialog">メモに戻る</button></dialog>
+<dialog id="edit-dialog" aria-labelledby="edit-title"><div class="dialog-heading"><h2 id="edit-title">あの日の選択</h2><button data-close="edit-dialog" class="icon-button" aria-label="記録を閉じる"><svg><use href="#i-close"/></svg></button></div><div id="edit-context" class="context-box"></div><label for="edit-reflection">あとから、ひとこと</label><textarea id="edit-reflection" rows="5" maxlength="1000" placeholder="実際どうだった？ やめておいた理由でも、後日やってみた話でも。"></textarea><p class="quiet-note">そのときのメモ・気持ち・抽選結果はそのまま残します。</p><button id="edit-save" class="primary">追記を保存する</button><button id="delete-button" class="text-button danger">この記録を削除する</button></dialog>
+<dialog id="confirm-dialog" aria-labelledby="confirm-title"><h2 id="confirm-title"></h2><p id="confirm-text"></p><div class="confirm-actions"><button id="confirm-cancel" class="secondary">やめておく</button><button id="confirm-ok" class="primary">確定する</button></div></dialog>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<noscript><p class="noscript">このアプリを使うには、JavaScriptを有効にしてください。</p></noscript>
+</body></html>
