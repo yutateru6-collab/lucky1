@@ -1,0 +1,25 @@
+name: Verify ExamMaker public URL
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-exammaker-public.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check claimed Cloudflare Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://exammaker-rebuilt.chambray-polka.workers.dev'
+          body="$(curl -fsSL --retry 3 --retry-delay 2 "$url")"
+          printf '%s' "$body" | grep -q '<title>ExamMaker</title>'
+          printf '%s' "$body" | grep -q '評論を作成する'
+          echo "ExamMaker is live: $url"
