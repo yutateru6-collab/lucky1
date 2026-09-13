@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f6f5ef">
+  <meta name="description" content="決めるのはあなた。きっかけは偶然。日常の小さな迷いに、50/50のコインを。出た結果には従わなくても大丈夫。">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="lucky">
+  <title>lucky — 決めるのはあなた。きっかけは偶然。</title>
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.mjs" type="module"></script>
+</head>
+<body>
+  <a href="#main" class="skip-link">メインへ移動</a>
+  <div class="app-shell">
+    <header class="site-header">
+      <a class="brand" href="#home" aria-label="lucky ホームへ"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 18C-1 2 2 32 18 20C2 41 32 38 20 22C41 38 38 8 22 20C38-1 8 2 20 18Z"/></svg><span>lucky<span class="brand-dot">.</span></span></a>
+      <span class="header-note">日常に、ちいさな偶然を。</span>
+      <button id="theme-toggle" class="icon-button" aria-label="ダークモードに切り替える" title="表示モードを切り替える"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.8A8.7 8.7 0 0 1 8.2 3.8a8.8 8.8 0 1 0 12 12Z"/></svg></button>
+    </header>
+    <main id="main">
+      <section id="home-view" aria-labelledby="home-title">
+        <div class="play-layout">
+          <div class="intro">
+            <div class="eyebrow"><span class="tiny-flower">✳</span> A LITTLE CHANCE</div>
+            <h1 id="home-title">いつもの自分に、<br><span>ちいさな偶然を。</span></h1>
+            <p class="intro-copy">やろうかな。やめようかな。<br>そんな迷いに、コインをひとつ。</p>
+            <p class="freedom"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4 8 9 8 9s8-5 8-9V6l-8-3Z"/><path d="m8.5 12 2.2 2.2 4.8-4.8"/></svg>出た結果には、従わなくてもいい。</p>
+            <div class="desktop-aside"><div class="path-art" aria-hidden="true"><span>いつもの道</span><i></i><b>?</b><em>まだ知らないほう</em></div><p>決めるのはあなた。<br>きっかけは偶然。</p></div>
+          </div>
+          <div class="play-panel" id="play-panel">
+            <div class="panel-top"><span id="panel-label">小さな迷いに、50 / 50。</span><span class="live-dot" aria-hidden="true"></span></div>
+            <div id="setup-area">
+              <div class="coin-stage">
+                <span class="orbit orbit-one" aria-hidden="true"></span><span class="orbit orbit-two" aria-hidden="true"></span>
+                <span class="spark spark-one" aria-hidden="true">✦</span><span class="spark spark-two" aria-hidden="true">＋</span>
+                <button id="coin-button" class="coin-button" aria-label="コインを投げる。やる・やらない、それぞれ50パーセント">
+                  <span class="coin" id="coin"><span class="coin-face coin-front"><span class="coin-rim"></span><svg viewBox="0 0 80 80" aria-hidden="true"><path d="M40 36C-2 4 4 64 36 40C4 82 64 76 40 44C82 76 76 16 44 40C76-2 16 4 40 36Z"/></svg><span class="coin-word">a little lucky</span></span><span class="coin-face coin-back"><span class="coin-rim"></span><svg viewBox="0 0 80 80" aria-hidden="true"><path d="M52 15a26 26 0 1 0 13 43A27 27 0 0 1 52 15Z"/></svg><span class="coin-word">your own pace</span></span></span>
+                </button>
+                <span class="coin-shadow" aria-hidden="true"></span>
+              </div>
+              <div class="odds" aria-label="やる50パーセント、やらない50パーセント"><span><i class="yes-dot"></i>やる <b>50<small>%</small></b></span><span class="odds-slash">/</span><span><i class="no-dot"></i>やらない <b>50<small>%</small></b></span></div>
+              <details class="note-details" id="note-details"><summary>迷っていることを書く <span>任意</span><b aria-hidden="true">＋</b></summary><label class="sr-only" for="decision-note">迷っていること（120文字まで）</label><input id="decision-note" type="text" maxlength="120" placeholder="例：気になるお店に入ってみる？" autocomplete="off"><small>書かなくても使えます。入力内容は外部に送信しません。</small></details>
+              <button id="toss-button" class="primary-button"><span>コインを投げる</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+              <p id="toss-status" class="micro-copy" role="status" aria-live="polite">どちらが出ても、あなたが選んでいい。</p>
+            </div>
+            <div id="result-area" hidden>
+              <div id="result-emblem" class="result-emblem" aria-hidden="true">↗</div>
+              <p class="result-eyebrow">コインが出したのは</p>
+              <h2 id="result-title" tabindex="-1">やる</h2>
+              <p id="result-note" class="result-note" hidden></p>
+              <p class="result-freedom">その通りでも、逆でも。<br>最後に決めるのは、あなたです。</p>
+              <fieldset class="choice-field"><legend>いま、あなたはどうしたい？</legend><div class="choice-grid"><button type="button" data-choice="yes" class="choice-button" aria-pressed="false">やってみる <span aria-hidden="true">↗</span></button><button type="button" data-choice="no" class="choice-button" aria-pressed="false">今回はやめておく <span aria-hidden="true">○</span></button></div><button type="button" data-choice="undecided" class="undecided-button" aria-pressed="false">まだ決めない</button></fieldset>
+              <div id="reflection" class="reflection" hidden><p id="choice-message" role="status"></p><fieldset class="feelings"><legend>結果を見たときの気持ち <small>任意</small></legend><div><button data-feeling="happy" aria-pressed="false">うれしい</button><button data-feeling="relieved" aria-pressed="false">ほっとした</button><button data-feeling="disappointed" aria-pressed="false">少し残念</button><button data-feeling="unsure" aria-pressed="false">わからない</button></div></fieldset><button id="save-button" class="primary-button">あしあとに残す <span aria-hidden="true">＋</span></button><p class="micro-copy">この端末だけに保存。残さなくても大丈夫。</p></div>
+              <button id="reset-button" class="text-button">残さず、ホームに戻る <span aria-hidden="true">↩</span></button>
+            </div>
+            <div id="safety-area" hidden><div class="safety-icon" aria-hidden="true">!</div><h2 id="safety-title" tabindex="-1">これは、コインに<br>任せないでおこう。</h2><p>命・健康・安全・大きなお金に関わることは、このアプリでは決めません。</p><p>状況を確かめて、必要なら周りの人や専門家に相談してください。緊急時は、アプリより安全の確保を優先してください。</p><button id="safety-back" class="primary-button">ホームに戻る</button></div>
+          </div>
+        </div>
+        <p class="scope-note">日常の小さな迷いのために。<a href="#about">安全に使うための約束</a><span id="offline-indicator" hidden> · オフライン</span></p>
+      </section>
+      <section id="history-view" class="secondary-view" aria-labelledby="history-title" hidden><div class="eyebrow">YOUR LITTLE CHOICES</div><h1 id="history-title" tabindex="-1">あなたの、あしあと。</h1><p class="section-copy">偶然をきっかけに、自分で選んだこと。<br>従った回数も、連続記録も、競いません。</p><div class="history-toolbar"><span id="history-count">まだ、まっさら。</span><button id="clear-history" class="text-button danger" hidden>すべて削除</button></div><div id="history-list"></div><p class="privacy-note">保存先は、このブラウザだけ。ログイン・端末間同期はありません。<br>ブラウザのデータを消すと、あしあとも消えます。</p></section>
+      <section id="about-view" class="secondary-view" aria-labelledby="about-title" hidden><div class="eyebrow">OUR LITTLE PROMISE</div><h1 id="about-title" tabindex="-1">決めるのは、あなた。</h1><p class="section-copy">lucky は、あなたの代わりに人生を決めるものではありません。迷ったときの、ちいさなきっかけです。</p><div class="promise-grid"><article><span>01</span><h2>どちらも、50％。</h2><p>毎回「やる」「やらない」をそれぞれ50％で抽選します。気分や履歴で、こっそり確率を変えることはありません。続けて同じ結果が出ることもあります。</p></article><article><span>02</span><h2>従わなくて、いい。</h2><p>「やる」が出ても、見送っていい。「やらない」が出ても、やっていい。まだ決めなくても大丈夫。ペナルティも、連続記録もありません。</p></article><article><span>03</span><h2>小さな迷いだけに。</h2><p>新しいお店に入るか。気になる本を開くか。そんな、どちらを選んでも安全なことに。声をかけるときは、相手の意思と周囲の安全を大切にしてください。</p><p class="important">命・医療・緊急時の救助・危険な行動・違法行為・大きなお金や借金など、重大な判断には使わないでください。</p><p>入力には一部の言葉を検出する補助がありますが、危険をすべて判断できる機能ではありません。</p></article><article><span>04</span><h2>思い出は、手元に。</h2><p>入力内容・抽選結果・保存したあしあとを、アプリから外部サーバーへ送信することはありません。保存は任意です。共用端末では、個人的な内容の保存に気をつけてください。</p><p>ページ配信に伴うIPアドレスなどのアクセス情報は、配信サービス側で取り扱われる場合があります。</p></article></div><div class="install-note"><h2>ホーム画面に、コインをひとつ。</h2><p>対応ブラウザの「ホーム画面に追加」や「インストール」から追加できます。iPhoneではSafariの共有メニューを確認してください。初回の読み込み・保存が完了した後は、オフラインでも使えます。</p></div><p class="version">lucky 1.0.0 · いつもの自分なら、選ばないほうへ。</p></section>
+      <noscript><p class="noscript">コインを投げるには、ブラウザのJavaScriptを有効にしてください。</p></noscript>
+    </main>
+    <nav class="bottom-nav" aria-label="メインナビゲーション"><a href="#home" class="nav-item" data-route="home" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v10m-3-2h6"/></svg><span>コイン</span></a><a href="#history" class="nav-item" data-route="history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 20c-3-4 2-5 5-8s-2-5 1-8m-8 6h1m11 7h1"/><circle cx="13" cy="4" r="1.5"/><circle cx="7" cy="20" r="1.5"/></svg><span>あしあと</span></a><a href="#about" class="nav-item" data-route="about"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v6m0-10v1"/></svg><span>このアプリ</span></a></nav>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="delete-dialog"><h2 id="delete-title">あしあとを削除しますか？</h2><p>削除したあしあとは、元に戻せません。</p><div class="dialog-actions"><button id="cancel-delete" class="choice-button">残しておく</button><button id="confirm-delete" class="choice-button danger">削除する</button></div></dialog>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "lucky-little-chance",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "日常の小さな迷いに、50/50のコインを。",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check public/app.mjs && node --check public/decision.mjs && node --check public/sw.js && npm test",
+    "deploy": "npx wrangler@4 deploy"
+  }
+}

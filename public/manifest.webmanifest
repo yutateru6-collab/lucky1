@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "lucky — ちいさな偶然を。",
+  "short_name": "lucky",
+  "description": "決めるのはあなた。きっかけは偶然。日常の小さな迷いに、50/50のコインを。",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f5ef",
+  "theme_color": "#f6f5ef",
+  "icons": [
+    {"src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "./icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

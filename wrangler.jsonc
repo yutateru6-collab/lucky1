@@ -1,0 +1,8 @@
+{
+  "name": "lucky1",
+  "compatibility_date": "2026-09-13",
+  "assets": {
+    "directory": "./public"
+  },
+  "workers_dev": true
+}
