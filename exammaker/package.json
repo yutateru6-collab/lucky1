@@ -1,0 +1,11 @@
+{
+  "name": "exammaker-rebuilt",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "deploy:temporary": "wrangler deploy --temporary"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

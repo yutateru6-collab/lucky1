@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "exammaker-rebuilt",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-13",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  }
+}

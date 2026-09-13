@@ -1,0 +1,76 @@
+name: Deploy ExamMaker to Cloudflare
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'exammaker/**'
+      - '.github/workflows/deploy-exammaker-cloudflare.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate source
+        working-directory: exammaker
+        run: |
+          set -euo pipefail
+          test -s public/index.html
+          test -s src/index.js
+          test -s wrangler.jsonc
+          node --check src/index.js
+
+      - name: Deploy ExamMaker
+        working-directory: exammaker
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > cloudflare-deploy.txt
+          if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "permanent" > deploy-mode.txt
+            npx --yes wrangler@4 deploy 2>&1 | tee cloudflare-deploy.txt
+          else
+            echo "temporary" > deploy-mode.txt
+            npx --yes wrangler@4 deploy --temporary 2>&1 | tee cloudflare-deploy.txt
+          fi
+          grep -Eo 'https://[^[:space:]]+\.workers\.dev[^[:space:]]*' cloudflare-deploy.txt | head -n 1 | sed 's/[),]$//' > public-url.txt || true
+          if [ ! -s public-url.txt ]; then
+            echo 'Cloudflare public URL was not detected in Wrangler output.' >&2
+            cat cloudflare-deploy.txt >&2
+            exit 1
+          fi
+          echo "Cloudflare deployment mode: $(cat deploy-mode.txt)"
+          echo "Cloudflare URL: $(cat public-url.txt)"
+          {
+            echo '## ExamMaker Cloudflare deployment'
+            echo
+            echo "Mode: $(cat deploy-mode.txt)"
+            echo
+            echo "URL: $(cat public-url.txt)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Save deployment URL
+        uses: actions/upload-artifact@v4
+        with:
+          name: exammaker-cloudflare-deploy-output
+          path: |
+            exammaker/cloudflare-deploy.txt
+            exammaker/public-url.txt
+            exammaker/deploy-mode.txt
+          retention-days: 1
