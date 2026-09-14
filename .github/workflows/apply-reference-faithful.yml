@@ -3,7 +3,7 @@ name: Apply reference-faithful lucky UI
 on:
   push:
     branches: [design/reference-faithful]
-    paths: [reference-faithful-bundle.zip]
+    paths: [reference-bundle.ready]
 
 permissions:
   contents: write
@@ -18,13 +18,14 @@ jobs:
       - name: Apply bundle
         run: |
           set -euo pipefail
+          cat reference-bundle.part* | base64 -d > reference-faithful-bundle.zip
           unzip -o reference-faithful-bundle.zip
-          rm reference-faithful-bundle.zip
+          rm reference-faithful-bundle.zip reference-bundle.part* reference-bundle.ready
           rm .github/workflows/apply-reference-faithful.yml
           npm run check
           npm run build
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json public scripts/verify-live.mjs tests/assets.test.mjs .github/workflows/apply-reference-faithful.yml reference-faithful-bundle.zip
+          git add -A
           git commit -m "Match lucky UI to approved reference"
           git push origin HEAD:design/reference-faithful
