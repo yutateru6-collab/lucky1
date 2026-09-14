@@ -3,8 +3,8 @@ import { GAMES } from './games.mjs';
 export const RECORD_KEY = 'lucky.records.v2';
 export const LEGACY_KEY = 'lucky.records.v1';
 export const MAX_ENTRIES = 1000;
-export const MOODS = Object.freeze({ excited: 'わくわく', unsure: '迷ってる', nervous: 'ちょっと不安', tired: '気が重い', calm: '落ち着いてる' });
-export const MOOD_ICONS = Object.freeze({ excited: '☺', unsure: '〰', nervous: '☁', tired: '☾', calm: '☀' });
+export const MOODS = Object.freeze({ excited: 'わくわく', unsure: '迷ってる', nervous: 'ちょっと不安', tired: '気が重い', calm: '落ち着いてる', normal: 'ふつう', relaxed: 'まったり', foggy: 'モヤモヤ', courage: 'ちょっと勇気ほしい' });
+export const MOOD_ICONS = Object.freeze({ excited: '☺', unsure: '〰', nervous: '☁', tired: '☾', calm: '☀', normal: '🙂', relaxed: '☁️', foggy: '🌥️', courage: '⭐' });
 const own = (obj, key) => typeof key === 'string' && Object.hasOwn(obj, key);
 export function dateKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;

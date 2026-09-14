@@ -1,5 +1,5 @@
 import { drawDecision } from './decision.mjs';
-export const GAMES = Object.freeze({ coin: 'コイン', rps: 'じゃんけん', cards: 'カード', dice: 'サイコロ' });
+export const GAMES = Object.freeze({ coin: 'コイン', rps: 'じゃんけん', cards: 'カード', dice: 'サイコロ', roulette: 'ルーレット' });
 export const HANDS = Object.freeze({ rock: '✊', scissors: '✌️', paper: '✋' });
 /** Rejection sampling avoids modulo bias. No history-based weighting. */
 export function randomInt(n, source = globalThis.crypto) {
@@ -12,6 +12,10 @@ export function randomInt(n, source = globalThis.crypto) {
 }
 export function playGame(game, input = {}, source = globalThis.crypto) {
   if (game === 'coin') return { result: drawDecision(source), detail: 'コインを投げました' };
+  if (game === 'roulette') {
+    const slot = randomInt(8, source) + 1;
+    return { result: slot <= 4 ? 'yes' : 'no', slot, detail: `${slot}番のマスに止まりました · 4マスずつの50/50` };
+  }
   if (game === 'cards') {
     if (![0, 1].includes(input.card)) throw new RangeError('Invalid card');
     const yesAt = drawDecision(source) === 'yes' ? 0 : 1;

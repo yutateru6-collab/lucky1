@@ -1,265 +1,96 @@
 import { needsHumanJudgment, RESULT_LABELS, CHOICE_LABELS, FEELING_LABELS } from './decision.mjs';
-import { GAMES, HANDS, playGame } from './games.mjs';
-import { RECORD_KEY, LEGACY_KEY, MOODS, MOOD_ICONS, dateKey, monthDays, loadEntries, putEntry, removeEntry, parseBackup, mergeEntries } from './journal.mjs';
+import { GAMES, HANDS, playGame, randomInt } from './games.mjs';
+import { RECORD_KEY, LEGACY_KEY, MOODS, dateKey, monthDays, loadEntries, putEntry, removeEntry, parseBackup, mergeEntries } from './journal.mjs';
 import { WORDS, dailyWord } from './words.mjs';
-const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
-const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
-const icon = name => { const n = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), u = document.createElementNS(n.namespaceURI, 'use'); u.setAttribute('href', `#i-${name}`); n.setAttribute('aria-hidden', 'true'); n.append(u); return n; };
-const RULES = { coin: '表は「やる」、裏は「やらない」。どちらも50%。', rps: '勝ったら「やる」、負けたら「やらない」。あいこはもう一度。', cards: '2枚のうち、1枚は「やる」、もう1枚は「やらない」。', dice: '奇数（1・3・5）は「やる」、偶数（2・4・6）は「やらない」。' };
-const THEME_KEY = 'lucky.theme.v1', FAVORITES_KEY = 'lucky.words.favorites.v1';
-let game = 'coin', beforeMood = null, draft = null, saved = false, busy = false, generation = 0, toastTimer, editingId = null, confirmAction = null, route = 'home', wordFilter = 'all';
-let selectedDay = dateKey(), shownMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12);
-let favorites = [];
-try { const value = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); if (Array.isArray(value)) favorites = value.filter(id => WORDS.some(w => w.id === id)); } catch { /* Optional UI setting. */ }
-function toast(text) { clearTimeout(toastTimer); $('#toast').textContent = text; $('#toast').hidden = false; toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 5000); }
-function report(error) { toast(error instanceof Error ? error.message : '操作を完了できませんでした。'); }
-function getRecords() { try { return loadEntries(); } catch { toast('保存データを読み込めません。元のデータは変更していません。'); return null; } }
-function mark(selector, key, value) { $$(selector).forEach(b => b.setAttribute('aria-pressed', String(b.dataset[key] === value))); }
-function setBusy(value) {
-  busy = value;
-  $$('#setup-grid button, #setup-grid textarea').forEach(b => { b.disabled = value; });
-  $('#game-stage').classList.toggle('is-playing', value);
-  $('#setup-grid').setAttribute('aria-busy', String(value));
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n};
+const button=(text,fn,cls='')=>{const b=el('button',cls,text);b.type='button';if(fn)b.addEventListener('click',fn);return b};
+const DRAFT_KEY='lucky.drafts.v1', FAVORITES_KEY='lucky.words.favorites.v1', PROFILE_KEY='lucky.profile.name.v1', META_KEY='lucky.record.meta.v1', THEME_KEY='lucky.theme.v1';
+const TOP=new Set(['home','choose','history','words','profile']);
+const METHODS={
+ coin:{label:'コイン',icon:'🪙',tone:'tone-coin',short:'表？裏？ シンプルに！',rule:'表は「やる」、裏は「やらない」。どちらも50%。'},
+ cards:{label:'カード',icon:'🃏',tone:'tone-cards',short:'カードが導く 今日の答え！',rule:'2枚のうち、1枚は「やる」、もう1枚は「やらない」。'},
+ dice:{label:'サイコロ',icon:'🎲',tone:'tone-dice',short:'運にまかせて コロコロ！',rule:'奇数は「やる」、偶数は「やらない」。3面ずつの50%。'},
+ rps:{label:'じゃんけん',icon:'✌️',tone:'tone-rps',short:'どれが出るか 勝負！',rule:'勝ったら「やる」、負けたら「やらない」。あいこはもう一度。'},
+ roulette:{label:'ルーレット',icon:'🎡',tone:'tone-roulette',short:'くるくる回して ワクワク！',rule:'8マスのうち4マスが「やる」、4マスが「やらない」。'}
+};
+const METHOD_KEYS=Object.keys(METHODS);
+const UI_MOODS={
+ excited:{label:'わくわく',emoji:'💗',copy:'たのしい感じでえらびたい！',method:'roulette'},
+ normal:{label:'ふつう',emoji:'🙂',copy:'いつもどおりえらびたい！',method:'coin'},
+ relaxed:{label:'まったり',emoji:'☁️',copy:'のんびり気分でえらびたい！',method:'cards'},
+ foggy:{label:'モヤモヤ',emoji:'🌥️',copy:'スッキリするヒントがほしい！',method:'dice'},
+ courage:{label:'ちょっと勇気ほしい',emoji:'⭐',copy:'一歩ふみだすきっかけがほしい！',method:'rps'}
+};
+const THEME_CHIPS=[['🍴','ごはん','ランチどこ行く？'],['🌳','おでかけ','いつもと違う道を歩く？'],['💬','ひとこと','気になってる人に連絡する？'],['🛍️','買いもの','気になってたものを買う？'],['👕','服','どっちの服を着る？'],['✨','その他','やってみる？']];
+const state={route:'home',previousTop:'home',flow:[],note:'',theme:null,beforeMood:null,beforeText:'',method:'coin',outcome:null,choice:'undecided',afterFeeling:null,reflection:'',draftId:null,selectedDay:dateKey(),shownMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1,12),selectedRecordId:null,wordFilter:'all',wordOffset:0,profileName:localStorage.getItem(PROFILE_KEY)||'らっきー'};
+let favorites=readJSON(FAVORITES_KEY,[]).filter(id=>WORDS.some(w=>w.id===id)), pendingConfirm=null, toastTimer;
+function readJSON(key,fallback){try{const v=JSON.parse(localStorage.getItem(key)||'null');return v??fallback}catch{return fallback}}
+function writeJSON(key,value){localStorage.setItem(key,JSON.stringify(value))}
+function toast(msg){clearTimeout(toastTimer);const t=$('#toast');t.textContent=msg;t.hidden=false;toastTimer=setTimeout(()=>t.hidden=true,3600)}
+function report(err){toast(err instanceof Error?err.message:'操作を完了できませんでした。')}
+function records(){try{return loadEntries()}catch{toast('保存データを読み込めません。元のデータは変更していません。');return[]}}
+function readDrafts(){const v=readJSON(DRAFT_KEY,[]);return Array.isArray(v)?v.filter(x=>x&&typeof x==='object'&&typeof x.id==='string').slice(0,20):[]}
+function saveDraft(){if(!state.note.trim()&&!state.beforeMood&&!state.beforeText.trim())return;const id=state.draftId||crypto.randomUUID();state.draftId=id;const d={id,note:state.note.slice(0,240),theme:state.theme,beforeMood:state.beforeMood,beforeText:state.beforeText.slice(0,500),method:state.method,updatedAt:new Date().toISOString()};const list=[d,...readDrafts().filter(x=>x.id!==id)].slice(0,20);writeJSON(DRAFT_KEY,list)}
+function removeDraft(id){writeJSON(DRAFT_KEY,readDrafts().filter(x=>x.id!==id))}
+function readMeta(){const v=readJSON(META_KEY,{});return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}
+function writeMeta(v){writeJSON(META_KEY,v)}
+function safeId(){try{return crypto.randomUUID()}catch{return `lucky-${Date.now()}-${Math.random().toString(36).slice(2)}`}}
+function setPressed(nodes,value,key){nodes.forEach(n=>n.setAttribute('aria-pressed',String(n.dataset[key]===value)))}
+function greeting(){const h=new Date().getHours();return h<11?'おはよう！':h<17?'こんにちは！':'こんばんは！'}
+function showView(name,{hash=true}={}){if(!$('#'+name+'-view'))name='home';$$('.view').forEach(v=>{const on=v.dataset.view===name;v.hidden=!on;v.classList.toggle('active',on)});state.route=name;if(TOP.has(name)){state.previousTop=name;$('#bottom-nav').hidden=false;$$('#bottom-nav a').forEach(a=>a.classList.toggle('active',a.dataset.nav===name));if(hash&&location.hash!==`#${name}`)history.replaceState(null,'',`#${name}`)}else{$('#bottom-nav').hidden=true}window.scrollTo({top:0,behavior:'instant'});renderRoute(name)}
+function navigate(name){showView(name)}
+function pushFlow(name){state.flow.push(name);showView(name,{hash:false})}
+function backFlow(){state.flow.pop();const prev=state.flow.at(-1)||state.previousTop||'home';showView(prev,{hash:false})}
+function closeFlow(){saveDraft();state.flow=[];resetTransient();showView(state.previousTop||'home')}
+function resetTransient(){state.outcome=null;state.choice='undecided';state.afterFeeling=null;state.reflection=''}
+function startFlow(opts={}){state.previousTop=TOP.has(state.route)?state.route:'home';state.flow=[];resetTransient();if(opts.draft){Object.assign(state,{draftId:opts.draft.id,note:opts.draft.note||'',theme:opts.draft.theme||null,beforeMood:opts.draft.beforeMood||null,beforeText:opts.draft.beforeText||'',method:METHODS[opts.draft.method]?opts.draft.method:'coin'})}else{state.draftId=null;state.note='';state.theme=null;state.beforeMood=null;state.beforeText='';if(opts.method)state.method=opts.method}pushFlow('memo')}
+function renderRoute(route){if(route==='home')renderHome();if(route==='choose')renderChoose();if(route==='history')renderHistory();if(route==='words')renderWords();if(route==='profile')renderProfile();if(route==='memo')renderMemo();if(route==='mood')renderMood();if(route==='method')renderFlowMethods();if(route==='game')renderGame();if(route==='result')renderResult();if(route==='record')renderRecord()}
+function methodCard(key,mini=false,onClick){const m=METHODS[key],b=button('',onClick,`${mini?'method-mini-card':'method-card'} ${m.tone}`);b.dataset.method=key;const art=el('div','method-art',m.icon),copy=el('div');copy.append(el('strong','',m.label),el('small','',m.short));b.append(art,copy);return b}
+function renderHomeMethods(){const c=$('#home-methods');c.replaceChildren();METHOD_KEYS.forEach(k=>c.append(methodCard(k,true,()=>startFlow({method:k}))))}
+function renderHome(){ $('#greeting-label').textContent=greeting();renderHomeMethods();renderHomeDrafts();renderHomeWord();renderActivity() }
+function renderHomeDrafts(){const c=$('#home-drafts');c.replaceChildren();const ds=readDrafts().slice(0,3);if(!ds.length){c.append(el('div','empty-mini','迷いをメモすると、ここから続きを始められます。'));return}ds.forEach(d=>{const b=button('',()=>startFlow({draft:d}),'compact-item');const ic=el('span','compact-icon',METHODS[d.method]?.icon||'📝'),body=el('div');body.append(el('strong','',d.note||'メモなしの選択'),el('small','',new Intl.DateTimeFormat('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(d.updatedAt))));b.append(ic,body,el('b','', '›'));c.append(b)})}
+function renderHomeWord(){const w=WORDS[(WORDS.indexOf(dailyWord(dateKey()))+state.wordOffset)%WORDS.length];$('#home-word-text').textContent=w.text}
+function renderActivity(){const c=$('#home-activity');c.replaceChildren();const rs=records().slice(0,3);if(!rs.length){c.append(el('div','empty-mini','まだ記録はありません。最初の選択を楽しんでみよう。'));return}rs.forEach(r=>{const row=el('div','activity-item'),ic=el('span','compact-icon',METHODS[r.game]?.icon||'✦'),body=el('div');body.append(el('strong','',`${GAMES[r.game]}で決めました`),el('small','',r.note||`${RESULT_LABELS[r.result]} → ${CHOICE_LABELS[r.choice]}`));row.append(ic,body,el('small','',relativeTime(r.createdAt)));c.append(row)})}
+function relativeTime(iso){const min=Math.max(0,Math.round((Date.now()-Date.parse(iso))/60000));if(min<1)return'たった今';if(min<60)return`${min}分前`;if(min<1440)return`${Math.floor(min/60)}時間前`;return`${Math.floor(min/1440)}日前`}
+function renderChoose(){const rec=state.beforeMood&&UI_MOODS[state.beforeMood]?UI_MOODS[state.beforeMood].method:'coin';const m=METHODS[rec];$('#recommended-title').textContent=m.label;$('#recommended-reason').textContent=state.beforeMood?`${UI_MOODS[state.beforeMood].label}な気分におすすめ`:'迷ったらまずはシンプルに';$('#recommended-visual').textContent=m.icon;$('#recommended-visual').className=`featured-visual ${m.tone}`;$('#recommended-start').dataset.method=rec;const c=$('#choose-methods');c.replaceChildren();METHOD_KEYS.filter(k=>k!==rec).forEach(k=>c.append(methodCard(k,false,()=>startFlow({method:k}))))}
+function renderMemo(){const t=$('#decision-note');t.value=state.note;$('#note-count').textContent=`${state.note.length} / 240`;const c=$('#theme-chips');c.replaceChildren();THEME_CHIPS.forEach(([ic,label,sample])=>{const b=button(`${ic} ${label}`,()=>{state.theme=label;if(!$('#decision-note').value.trim()){$('#decision-note').value=sample;state.note=sample;$('#note-count').textContent=`${sample.length} / 240`}setPressed($$('#theme-chips button'),label,'theme')});b.dataset.theme=label;b.setAttribute('aria-pressed',String(state.theme===label));c.append(b)})}
+function renderMood(){const c=$('#mood-grid');c.replaceChildren();Object.entries(UI_MOODS).forEach(([k,m])=>{const b=button('',()=>{state.beforeMood=state.beforeMood===k?null:k;renderMood()},'mood-card');b.dataset.mood=k;b.setAttribute('aria-pressed',String(state.beforeMood===k));b.append(el('span','mood-emoji',m.emoji),el('strong','',m.label),el('small','',m.copy));c.append(b)});$('#before-text').value=state.beforeText}
+function selectedMethodFromMood(){return state.beforeMood&&UI_MOODS[state.beforeMood]?UI_MOODS[state.beforeMood].method:state.method}
+function renderFlowMethods(){if(!METHODS[state.method])state.method=selectedMethodFromMood();$('#method-recommend-copy').textContent=state.beforeMood?`${UI_MOODS[state.beforeMood].label}な気分におすすめ：${METHODS[selectedMethodFromMood()].label}`:'どの方法も50/50。好きな遊び方を。';const c=$('#flow-methods');c.replaceChildren();METHOD_KEYS.forEach(k=>{const b=methodCard(k,false,()=>{state.method=k;renderFlowMethods()});b.classList.toggle('selected',state.method===k);b.setAttribute('aria-pressed',String(state.method===k));c.append(b)})}
+function chooseRandomMethod(){try{state.method=METHOD_KEYS[randomInt(METHOD_KEYS.length)];renderFlowMethods();toast(`${METHODS[state.method].label}にしてみよう！`)}catch(e){report(e)}}
+function renderGame(){const m=METHODS[state.method];$('#game-title').textContent=m.label;$('#game-kicker').textContent='ちいさな偶然を、ひとつ。';$('#game-note-preview').textContent=state.note||'メモなしでも、そのまま決められます。';$('#game-rule').textContent=m.rule;$('#game-status').textContent='';const stage=$('#game-stage'),ctl=$('#game-controls');stage.replaceChildren();ctl.replaceChildren();if(state.method==='coin'){const core=el('div','game-core');core.append(el('div','stage-coin','♣'),el('p','','表か裏か。50/50。'));stage.append(core);ctl.append(button('コインを投げる ›',()=>runGame({}),'primary-button'))}if(state.method==='dice'){const core=el('div','game-core');core.append(el('div','stage-dice','🎲'),el('p','','奇数？ 偶数？'));stage.append(core);ctl.append(button('サイコロを振る ›',()=>runGame({}),'primary-button'))}if(state.method==='roulette'){const core=el('div','game-core');core.append(el('div','stage-wheel'),el('p','','8マスの半分ずつ。'));stage.append(core);ctl.append(button('ルーレットを回す ›',()=>runGame({}),'primary-button'))}if(state.method==='cards'){const core=el('div','game-core card-stage');[0,1].forEach(i=>{const b=button('✦',()=>runGame({card:i}),'draw-card');b.setAttribute('aria-label',`${i?'右':'左'}のカードを引く`);core.append(b)});stage.append(core,el('p','game-status','気になる1枚を選んでね。'))}if(state.method==='rps'){const core=el('div','game-core');core.append(el('div','stage-dice','✊'),el('p','','あなたの手を選んでね。'));const hands=el('div','rps-options');Object.entries(HANDS).forEach(([k,v])=>{const b=button(v,()=>runGame({hand:k}));b.setAttribute('aria-label',`${k}を出す`);hands.append(b)});core.append(hands);stage.append(core)}}
+function runGame(input){if(needsHumanJudgment(`${state.note} ${state.beforeText}`)){toast('これは偶然に任せず、人や専門家と一緒に判断してください。');return}try{const out=playGame(state.method,input);if(out.result===null){$('#game-status').textContent=`${out.detail} · あいこ！もう一度。`;return}state.outcome=out;state.choice='undecided';state.afterFeeling=null;state.reflection='';pushFlow('result')}catch(e){report(e)}}
+function renderResult(){const yes=state.outcome?.result==='yes',m=METHODS[state.method];$('#result-method-label').textContent=`${m.label}で決めたよ！`;$('#result-title').textContent=yes?'やってみる！':'今回は見送る';$('#result-message').textContent=yes?'今日のあなたに、ちいさな一歩のきっかけ。':'見送るのも、ちゃんと自分で選べる答え。';$('#result-art').textContent=state.method==='coin'?'🪙':state.method==='cards'?'🃏':state.method==='dice'?'🎲':state.method==='rps'?'✌️':'🎡';const memo=$('#result-memo');memo.replaceChildren(el('small','','あなたのメモ'),el('strong','',state.note||'心の中で迷っていたこと'));const choices=$('#own-choice-buttons');choices.replaceChildren();[['yes','やってみる'],['no','今回は見送る'],['undecided','まだ決めない']].forEach(([k,label])=>{const b=button(label,()=>{state.choice=k;renderResultChoices()});b.dataset.choice=k;b.setAttribute('aria-pressed',String(state.choice===k));choices.append(b)});const aft=$('#after-feelings');if(!aft.childElementCount)Object.entries(FEELING_LABELS).forEach(([k,label])=>{const b=button(label,()=>{state.afterFeeling=state.afterFeeling===k?null:k;renderResultChoices()});b.dataset.feeling=k;aft.append(b)});$('#reflection').value=state.reflection;renderResultChoices();setTimeout(()=>$('#result-title').focus({preventScroll:true}),0)}
+function renderResultChoices(){setPressed($$('#own-choice-buttons [data-choice]'),state.choice,'choice');setPressed($$('#after-feelings [data-feeling]'),state.afterFeeling,'feeling')}
+function saveResult(){if(!state.outcome)return;state.reflection=$('#reflection').value.trim();const id=safeId(),entry={version:2,id,note:state.note.slice(0,240),beforeMood:state.beforeMood,beforeText:state.beforeText.slice(0,500),game:state.method,result:state.outcome.result,choice:state.choice,feeling:state.afterFeeling,reflection:state.reflection.slice(0,1000),createdAt:new Date().toISOString(),localDate:dateKey()};try{putEntry(entry);if(state.draftId)removeDraft(state.draftId);const meta=readMeta();meta[id]={theme:state.theme};writeMeta(meta);state.selectedRecordId=id;state.selectedDay=entry.localDate;const d=new Date();state.shownMonth=new Date(d.getFullYear(),d.getMonth(),1,12);state.flow=[];toast('記録しました。');showView('record',{hash:false})}catch(e){report(e)}}
+function retryResult(){state.outcome=null;backFlow()}
+function renderHistory(){const rs=records(),y=state.shownMonth.getFullYear(),m=state.shownMonth.getMonth();$('#month-label').textContent=`${y}年 ${m+1}月`;const counts=new Map();rs.forEach(r=>counts.set(r.localDate,(counts.get(r.localDate)||0)+1));const days=$('#calendar-days');days.replaceChildren();monthDays(y,m).forEach(d=>{const key=dateKey(d),b=button(String(d.getDate()),()=>{state.selectedDay=key;renderHistory()});b.dataset.day=key;b.classList.toggle('outside',d.getMonth()!==m);b.setAttribute('aria-pressed',String(key===state.selectedDay));if(key===dateKey())b.classList.add('today');if(counts.get(key)){const dot=el('i','day-dot');b.append(dot)}days.append(b)});const filtered=rs.filter(r=>r.localDate===state.selectedDay);const list=$('#history-records');list.replaceChildren();const show=filtered.length?filtered:rs.slice(0,8);if(!show.length){list.append(el('div','empty-mini','まだ記録はありません。小さな選択を残してみよう。'));return}show.forEach(r=>{const b=button('',()=>{state.selectedRecordId=r.id;showView('record',{hash:false})},'record-card-button'),thumb=el('span',`record-thumb ${METHODS[r.game]?.tone||''}`,METHODS[r.game]?.icon||'✦'),body=el('span');body.append(el('small','',formatDate(r.localDate)),el('strong','',r.note||`${GAMES[r.game]}で決めた`),el('small','',`${GAMES[r.game]} · 偶然:${RESULT_LABELS[r.result]} · 自分:${CHOICE_LABELS[r.choice]}`));b.append(thumb,body,el('b','', '›'));list.append(b)})}
+function formatDate(key){const [y,m,d]=key.split('-');return`${Number(m)}月${Number(d)}日`}
+function renderWords(){setPressed($$('#word-filters [data-word-filter]'),state.wordFilter,'wordFilter');const feed=$('#words-feed');feed.replaceChildren();let list=WORDS;if(state.wordFilter==='proverb')list=WORDS.filter(w=>w.category==='proverb');else if(state.wordFilter==='favorites')list=WORDS.filter(w=>favorites.includes(w.id));else list=WORDS.filter(w=>w.category!=='proverb');if(!list.length){feed.append(el('div','empty-mini','お気に入りはまだありません。♡を押すとここに残せます。'));return}list.forEach(w=>{const card=el('article','word-card'),fav=button(favorites.includes(w.id)?'♥':'♡',()=>toggleFavorite(w.id),'favorite-button');fav.classList.toggle('active',favorites.includes(w.id));card.append(el('h3','',w.text),el('p','',w.note),fav);feed.append(card)})}
+function toggleFavorite(id){favorites=favorites.includes(id)?favorites.filter(x=>x!==id):[...favorites,id];writeJSON(FAVORITES_KEY,favorites);renderWords();if(state.route==='profile')renderProfile()}
+function renderProfile(){ $('#profile-name').textContent=state.profileName;const rs=records();const counts={};rs.forEach(r=>counts[r.game]=(counts[r.game]||0)+1);const favoriteMethod=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0];const stats=[['⭐',rs.length,'選んだ回数'],['🗓',new Set(rs.map(r=>r.localDate)).size,'記録した日'],['♥',favorites.length,'お気に入りのことば'],[METHODS[favoriteMethod]?.icon||'🎲',METHODS[favoriteMethod]?.label||'まだこれから','よく使う決め方']];const c=$('#profile-stats');c.replaceChildren();stats.forEach(([ic,v,label])=>{const card=el('div','stat-card');card.append(el('span','',ic),el('strong','',String(v)),el('small','',label));c.append(card)})}
+function renderRecord(){const r=records().find(x=>x.id===state.selectedRecordId),c=$('#record-detail');c.replaceChildren();if(!r){c.append(el('div','empty-mini','記録が見つかりません。'));return}const meta=readMeta()[r.id]||{};c.append(el('p','mini-copy',formatDate(r.localDate)),el('h1','',r.note||'心の中で迷っていたこと'));const items=[['偶然の答え',`${METHODS[r.game]?.icon||''} ${GAMES[r.game]} → ${RESULT_LABELS[r.result]}`],['選ぶ前の気持ち',r.beforeMood?(UI_MOODS[r.beforeMood]?.label||MOODS[r.beforeMood]||r.beforeMood):'未入力'],['自分の選択',CHOICE_LABELS[r.choice]],['結果を見た気持ち',r.feeling?FEELING_LABELS[r.feeling]:'未入力']];if(meta.theme)items.push(['テーマ',meta.theme]);items.forEach(([label,value])=>{const d=el('div','detail-card');d.append(el('small','',label),el('strong','',value));c.append(d)});const refl=el('div','detail-card detail-reflection');refl.append(el('small','','ふりかえり'));const ta=el('textarea');ta.rows=4;ta.maxLength=1000;ta.value=r.reflection||'';const save=button('ふりかえりを保存',()=>{try{putEntry({...r,reflection:ta.value.trim()});toast('ふりかえりを更新しました。')}catch(e){report(e)}},'soft-button');refl.append(ta,save);c.append(refl)}
+function openSettings(){$('#settings-dialog').showModal()}
+function initTheme(){const saved=localStorage.getItem(THEME_KEY)||'system';applyTheme(saved)}
+function applyTheme(mode){localStorage.setItem(THEME_KEY,mode);const dark=mode==='dark'||(mode==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=dark?'dark':'light'}
+function exportBackup(){try{const payload={app:'lucky',version:2,exportedAt:new Date().toISOString(),entries:records(),extras:{drafts:readDrafts(),favorites,meta:readMeta(),profileName:state.profileName}};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`lucky-backup-${dateKey()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}catch(e){report(e)}}
+async function importBackup(file){if(!file)return;try{const text=await file.text(),raw=JSON.parse(text),entries=parseBackup(text);mergeEntries(entries);if(raw.extras?.drafts&&Array.isArray(raw.extras.drafts))writeJSON(DRAFT_KEY,raw.extras.drafts.slice(0,20));if(raw.extras?.favorites&&Array.isArray(raw.extras.favorites)){favorites=raw.extras.favorites.filter(id=>WORDS.some(w=>w.id===id));writeJSON(FAVORITES_KEY,favorites)}if(raw.extras?.meta&&typeof raw.extras.meta==='object')writeMeta(raw.extras.meta);if(typeof raw.extras?.profileName==='string'){state.profileName=raw.extras.profileName.slice(0,30);localStorage.setItem(PROFILE_KEY,state.profileName)}toast('バックアップを読み込みました。');renderHome()}catch(e){report(e)}}
+function askConfirm(title,message,fn,ok='削除する'){pendingConfirm=fn;$('#confirm-title').textContent=title;$('#confirm-message').textContent=message;$('#confirm-ok').textContent=ok;$('#confirm-dialog').showModal()}
+function bind(){
+ $$('[data-nav]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigate(a.dataset.nav)}));
+ $('#home-start').addEventListener('click',()=>startFlow());$('#show-all-methods').addEventListener('click',()=>navigate('choose'));$('#all-drafts-button').addEventListener('click',()=>{toast('最近のメモから、続きを選べます。');$('#home-drafts').scrollIntoView({behavior:'smooth'})});$('#home-word-open').addEventListener('click',()=>navigate('words'));$('#home-word-next').addEventListener('click',()=>{state.wordOffset++;renderHomeWord()});$('#activity-all').addEventListener('click',()=>navigate('history'));
+ $('#recommended-start').addEventListener('click',e=>startFlow({method:e.currentTarget.dataset.method||'coin'}));$('#random-method').addEventListener('click',()=>{try{const k=METHOD_KEYS[randomInt(METHOD_KEYS.length)];startFlow({method:k})}catch(e){report(e)}});$('#choose-start').addEventListener('click',()=>startFlow({method:state.method}));
+ $('#decision-note').addEventListener('input',e=>{state.note=e.target.value;$('#note-count').textContent=`${state.note.length} / 240`});$('#before-text').addEventListener('input',e=>state.beforeText=e.target.value);$('#reflection').addEventListener('input',e=>state.reflection=e.target.value);
+ $('#memo-next').addEventListener('click',()=>{state.note=$('#decision-note').value;saveDraft();pushFlow('mood')});$('#memo-skip').addEventListener('click',()=>{state.note=$('#decision-note').value;pushFlow('mood')});$('#mood-next').addEventListener('click',()=>{state.beforeText=$('#before-text').value;state.method=selectedMethodFromMood();saveDraft();pushFlow('method')});$('#mood-skip').addEventListener('click',()=>{state.beforeMood=null;state.beforeText=$('#before-text').value;pushFlow('method')});$('#flow-random-method').addEventListener('click',chooseRandomMethod);$('#method-next').addEventListener('click',()=>{saveDraft();pushFlow('game')});
+ $('#save-result').addEventListener('click',saveResult);$('#retry-result').addEventListener('click',retryResult);$('#change-method').addEventListener('click',()=>{state.outcome=null;state.flow=[state.previousTop,'memo','mood'];showView('method',{hash:false})});$$('[data-flow-back]').forEach(b=>b.addEventListener('click',backFlow));$$('.close-flow').forEach(b=>b.addEventListener('click',closeFlow));$('[data-record-back]').addEventListener('click',()=>showView('history'));
+ $('#prev-month').addEventListener('click',()=>{state.shownMonth=new Date(state.shownMonth.getFullYear(),state.shownMonth.getMonth()-1,1,12);renderHistory()});$('#next-month').addEventListener('click',()=>{state.shownMonth=new Date(state.shownMonth.getFullYear(),state.shownMonth.getMonth()+1,1,12);renderHistory()});$('#history-today').addEventListener('click',()=>{const d=new Date();state.shownMonth=new Date(d.getFullYear(),d.getMonth(),1,12);state.selectedDay=dateKey(d);renderHistory()});
+ $$('[data-word-filter]').forEach(b=>b.addEventListener('click',()=>{state.wordFilter=b.dataset.wordFilter;renderWords()}));$('#edit-profile').addEventListener('click',()=>{const v=prompt('表示名を入力してください（30文字まで）',state.profileName);if(v===null)return;const clean=v.trim().slice(0,30);if(clean){state.profileName=clean;localStorage.setItem(PROFILE_KEY,clean);renderProfile()}});$('#profile-drafts').addEventListener('click',()=>{navigate('home');setTimeout(()=>$('#home-drafts').scrollIntoView({behavior:'smooth'}),10)});$('#profile-words').addEventListener('click',()=>{state.wordFilter='favorites';navigate('words')});$('#profile-settings').addEventListener('click',openSettings);$('#quick-settings').addEventListener('click',openSettings);
+ $('#theme-light').addEventListener('click',()=>applyTheme('light'));$('#theme-dark').addEventListener('click',()=>applyTheme('dark'));$('#theme-system').addEventListener('click',()=>applyTheme('system'));$('#export-data').addEventListener('click',exportBackup);$('#import-data').addEventListener('change',e=>importBackup(e.target.files?.[0]));$('#clear-drafts').addEventListener('click',()=>askConfirm('メモを整理する？','途中のメモだけを削除します。記録は残ります。',()=>{localStorage.removeItem(DRAFT_KEY);renderHome();toast('途中のメモを整理しました。')}));$('#clear-data').addEventListener('click',()=>askConfirm('すべての記録を削除する？','この端末に保存された記録・メモ・お気に入りを削除します。元に戻せません。',()=>{[RECORD_KEY,LEGACY_KEY,DRAFT_KEY,FAVORITES_KEY,META_KEY].forEach(k=>localStorage.removeItem(k));favorites=[];renderHome();toast('この端末のデータを削除しました。')}));
+ $('#confirm-dialog').addEventListener('close',()=>{if($('#confirm-dialog').returnValue==='default'&&pendingConfirm){const fn=pendingConfirm;pendingConfirm=null;fn()}else pendingConfirm=null});$('#delete-record').addEventListener('click',()=>{const id=state.selectedRecordId;if(!id)return;askConfirm('この記録を削除する？','この記録だけを削除します。元に戻せません。',()=>{try{removeEntry(id);const meta=readMeta();delete meta[id];writeMeta(meta);state.selectedRecordId=null;showView('history');toast('記録を削除しました。')}catch(e){report(e)}})});
+ window.addEventListener('hashchange',()=>{const r=location.hash.slice(1);if(TOP.has(r))showView(r,{hash:false})});window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline)
 }
-function setGame(value) {
-  if (busy || !Object.hasOwn(GAMES, value)) return;
-  game = value; mark('[data-game]', 'game', game);
-  Object.keys(GAMES).forEach(id => { $(`#${id}-scene`).hidden = id !== game; });
-  $('#game-stage').dataset.mode = game;
-  $('#game-rule').textContent = RULES[game];
-  $('#play-button').hidden = ['cards', 'rps'].includes(game);
-  $('#play-label').textContent = game === 'dice' ? 'サイコロを振る' : 'コインを投げる';
-  $('#play-status').textContent = '';
-  $('#rps-prompt').textContent = 'あなたの手を選んでね。';
-  $('#opponent-hand').textContent = '✊';
-}
-function showContext(target, entry, full = false) {
-  target.replaceChildren();
-  target.append(el('h3', '', entry.note || '心の中で迷っていたこと'));
-  if (entry.beforeMood) target.append(el('p', '', `抽選前：${MOODS[entry.beforeMood]}`));
-  if (entry.beforeText) target.append(el('p', '', entry.beforeText));
-  if (full) {
-    target.append(el('p', '', `${entry.localDate} · ${GAMES[entry.game]}：${RESULT_LABELS[entry.result]} → 自分：${CHOICE_LABELS[entry.choice]}`));
-    if (entry.feeling) target.append(el('p', '', `結果を見て：${FEELING_LABELS[entry.feeling]}`));
-  }
-}
-async function draw(input = {}) {
-  if (busy || draft) return;
-  const note = $('#decision-note').value.trim(), beforeText = $('#before-text').value.trim();
-  if (needsHumanJudgment(`${note} ${beforeText}`)) { $('#safety-dialog').showModal(); return; }
-  let outcome;
-  try { outcome = playGame(game, input); } catch (error) { report(error); return; }
-  const captured = { note, beforeText, beforeMood, game, createdAt: new Date().toISOString(), localDate: dateKey() };
-  const token = ++generation;
-  setBusy(true); $('#play-status').textContent = game === 'rps' ? 'じゃん、けん……' : 'ちいさな偶然を、ひとつ。';
-  await new Promise(resolve => setTimeout(resolve, matchMedia('(prefers-reduced-motion: reduce)').matches ? 40 : 850));
-  if (token !== generation) return;
-  setBusy(false);
-  if (outcome.result === null) {
-    $('#opponent-hand').textContent = HANDS[outcome.opponent];
-    $('#rps-prompt').textContent = 'あいこ！ もう一度、手を選んでね。';
-    $('#play-status').textContent = `${outcome.detail} · あいこなので、まだ結果は出ていません。`;
-    $(`[data-hand="${input.hand}"]`).focus({ preventScroll: true });
-    return;
-  }
-  let id;
-  try { id = crypto.randomUUID(); } catch { report(new Error('このブラウザでは記録を準備できません。')); return; }
-  draft = { version: 2, id, ...captured, result: outcome.result, choice: 'undecided', feeling: null, reflection: '' };
-  saved = false;
-  $('#setup-grid').hidden = true; $('#result-panel').hidden = false;
-  $('#result-title').textContent = RESULT_LABELS[outcome.result];
-  $('#result-symbol').textContent = ({ coin: outcome.result === 'yes' ? '↗' : '○', rps: HANDS[outcome.opponent], cards: '✧', dice: String(outcome.face) })[game];
-  $('#result-game').textContent = `${GAMES[game]}が選んだのは`;
-  $('#result-detail').textContent = outcome.detail;
-  showContext($('#result-context'), draft);
-  $('#reflection').value = ''; mark('[data-choice]', 'choice', 'undecided'); mark('[data-feeling]', 'feeling', null);
-  $('#save-button').disabled = false; $('#new-button').textContent = '記録せず、次の選択へ →';
-  $('#result-title').focus({ preventScroll: true });
-  $('#result-panel').scrollIntoView({ block: 'start', behavior: 'instant' });
-}
-function reset() {
-  generation++; setBusy(false); draft = null; saved = false; beforeMood = null;
-  $('#decision-note').value = ''; $('#before-text').value = ''; $('.feeling-details').open = false;
-  mark('[data-mood]', 'mood', null);
-  $('#result-panel').hidden = true; $('#setup-grid').hidden = false;
-  setGame(game);
-  $('#decision-note').focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: 'instant' });
-}
-function saveDraft() {
-  if (!draft) return;
-  const next = { ...draft, reflection: $('#reflection').value.trim() };
-  try {
-    putEntry(next); draft = next; saved = true;
-    selectedDay = draft.localDate; const [y, m] = selectedDay.split('-').map(Number); shownMonth = new Date(y, m - 1, 1, 12);
-    $('#new-button').textContent = '新しい選択へ →';
-    navigate('calendar'); toast('メモと気持ちを、カレンダーに残しました。');
-  } catch (error) { report(error); }
-}
-function button(text, handler, cls = '') { const b = el('button', cls, text); b.type = 'button'; b.addEventListener('click', handler); return b; }
-Object.entries(MOODS).forEach(([key, text]) => {
-  const b = button('', () => { beforeMood = beforeMood === key ? null : key; mark('[data-mood]', 'mood', beforeMood); });
-  b.dataset.mood = key; b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-label', text);
-  const symbol = el('span', 'mood-symbol', MOOD_ICONS[key]); symbol.setAttribute('aria-hidden', 'true'); b.append(symbol, el('span', '', ({ excited: 'わくわく', unsure: '迷ってる', nervous: '不安', tired: '気が重い', calm: '穏やか' })[key])); $('#mood-options').append(b);
-});
-Object.entries(FEELING_LABELS).forEach(([key, text]) => {
-  const b = button(text, () => { if (!draft) return; draft.feeling = draft.feeling === key ? null : key; saved = false; $('#new-button').textContent = '記録せず、次の選択へ →'; mark('[data-feeling]', 'feeling', draft.feeling); });
-  b.dataset.feeling = key; b.setAttribute('aria-pressed', 'false'); $('#after-options').append(b);
-});
-$$('[data-game]').forEach(b => b.addEventListener('click', () => setGame(b.dataset.game)));
-$$('[data-hand]').forEach(b => b.addEventListener('click', () => draw({ hand: b.dataset.hand })));
-$$('[data-card]').forEach(b => b.addEventListener('click', () => draw({ card: Number(b.dataset.card) })));
-$('#play-button').addEventListener('click', () => draw());
-$$('[data-choice]').forEach(b => b.addEventListener('click', () => { if (!draft) return; draft.choice = b.dataset.choice; saved = false; $('#new-button').textContent = '記録せず、次の選択へ →'; mark('[data-choice]', 'choice', draft.choice); }));
-$('#reflection').addEventListener('input', () => { saved = false; $('#new-button').textContent = '記録せず、次の選択へ →'; });
-$('#save-button').addEventListener('click', saveDraft);
-$('#new-button').addEventListener('click', reset);
-function chooseDay(key, focus = false) {
-  selectedDay = key; const [y, m] = key.split('-').map(Number); shownMonth = new Date(y, m - 1, 1, 12);
-  renderCalendar(); if (focus) $(`[data-day="${key}"]`)?.focus({ preventScroll: true });
-}
-function renderCalendar() {
-  const entries = getRecords(); $('#calendar-days').replaceChildren();
-  const y = shownMonth.getFullYear(), m = shownMonth.getMonth(), today = dateKey();
-  $('#month-label').textContent = `${y}年 ${m + 1}月`;
-  const counts = new Map(); for (const e of entries || []) counts.set(e.localDate, (counts.get(e.localDate) || 0) + 1);
-  const days = monthDays(y, m), hasSelected = days.some(d => dateKey(d) === selectedDay);
-  for (const day of days) {
-    const key = dateKey(day), count = counts.get(key) || 0;
-    const b = button(String(day.getDate()), () => chooseDay(key)); b.dataset.day = key;
-    b.setAttribute('aria-label', `${day.getFullYear()}年${day.getMonth() + 1}月${day.getDate()}日、記録${count}件`);
-    b.setAttribute('aria-pressed', String(key === selectedDay));
-    b.tabIndex = key === selectedDay || (!hasSelected && day.getDate() === 1 && day.getMonth() === m) ? 0 : -1;
-    if (day.getMonth() !== m) b.classList.add('outside'); if (key === today) { b.classList.add('today'); b.setAttribute('aria-current', 'date'); }
-    if (count) { const dot = el('span', 'day-dot'); dot.setAttribute('aria-hidden', 'true'); b.append(dot); }
-    b.addEventListener('keydown', event => {
-      const delta = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[event.key];
-      if (delta !== undefined) { event.preventDefault(); chooseDay(dateKey(new Date(day.getFullYear(), day.getMonth(), day.getDate() + delta, 12)), true); }
-    });
-    $('#calendar-days').append(b);
-  }
-  const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
-  $('#month-count').textContent = `${(entries || []).filter(e => e.localDate.startsWith(prefix)).length}件の記録`;
-  const [dy, dm, dd] = selectedDay.split('-').map(Number), date = new Date(dy, dm - 1, dd, 12);
-  $('#day-title').textContent = `${dm}月${dd}日（${'日月火水木金土'[date.getDay()]}）`;
-  const dayEntries = (entries || []).filter(e => e.localDate === selectedDay);
-  $('#day-count').textContent = `${dayEntries.length}件`;
-  const list = $('#day-records'); list.replaceChildren();
-  if (!dayEntries.length) {
-    const empty = el('div', 'empty-state'); empty.append(el('div', 'empty-icon', '✳'), el('h3', '', entries === null ? '記録を読み込めませんでした。' : 'この日は、まだまっさら。'), el('p', '', entries === null ? '元のデータは変更していません。ブラウザの保存設定を確認してください。' : '残したい小さな選択があったら、ここに。\n毎日埋めなくても大丈夫。'));
-    const link = el('a', 'text-button', '今日のきっかけを選ぶ →'); link.href = '#home'; empty.append(link); list.append(empty); return;
-  }
-  dayEntries.forEach(entry => {
-    const card = el('article', 'record-card'), head = el('div', 'record-header');
-    const time = el('time', '', new Intl.DateTimeFormat('ja-JP', { hour: '2-digit', minute: '2-digit' }).format(new Date(entry.createdAt))); time.dateTime = entry.createdAt;
-    head.append(time, el('span', '', GAMES[entry.game]));
-    card.append(head, el('h3', '', entry.note || '心の中で迷っていたこと'));
-    if (entry.beforeMood) card.append(el('p', 'record-mood', `抽選前：${MOOD_ICONS[entry.beforeMood]} ${MOODS[entry.beforeMood]}`));
-    if (entry.beforeText) card.append(el('p', 'record-mood', entry.beforeText));
-    const result = el('div', 'record-outcome'), random = el('div'), actual = el('div', 'own-choice');
-    random.append(el('small', '', '偶然の答え'), el('span', '', RESULT_LABELS[entry.result])); actual.append(el('small', '', '自分の選択'), el('span', '', CHOICE_LABELS[entry.choice])); result.append(random, actual); card.append(result);
-    if (entry.feeling) card.append(el('p', 'record-mood', `結果を見て：${FEELING_LABELS[entry.feeling]}`));
-    if (entry.reflection) card.append(el('p', 'record-reflection', entry.reflection));
-    card.append(button('あとからひとこと・記録を開く →', () => openEntry(entry.id), 'text-button')); list.append(card);
-  });
-}
-function changeMonth(delta) {
-  shownMonth = new Date(shownMonth.getFullYear(), shownMonth.getMonth() + delta, 1, 12);
-  if (shownMonth.getFullYear() < 1900 || shownMonth.getFullYear() > 9999) { shownMonth = new Date(); return; }
-  selectedDay = dateKey(shownMonth); renderCalendar();
-}
-$('#prev-month').addEventListener('click', () => changeMonth(-1)); $('#next-month').addEventListener('click', () => changeMonth(1));
-$('#today-button').addEventListener('click', () => chooseDay(dateKey()));
-function openEntry(id) {
-  const entry = getRecords()?.find(e => e.id === id); if (!entry) return;
-  editingId = id; showContext($('#edit-context'), entry, true); $('#edit-reflection').value = entry.reflection; $('#edit-dialog').showModal();
-}
-$('#edit-save').addEventListener('click', () => {
-  try {
-    const entry = loadEntries().find(e => e.id === editingId); if (!entry) throw new Error('この記録は別の画面で削除されています。');
-    const next = { ...entry, reflection: $('#edit-reflection').value.trim() }; putEntry(next);
-    if (draft?.id === entry.id) { draft.reflection = next.reflection; $('#reflection').value = next.reflection; }
-    $('#edit-dialog').close(); renderCalendar(); toast('あの日の記録に、ひとこと残しました。');
-  } catch (error) { report(error); }
-});
-function ask(title, text, action) { $('#confirm-title').textContent = title; $('#confirm-text').textContent = text; confirmAction = action; $('#confirm-dialog').showModal(); $('#confirm-cancel').focus(); }
-$('#confirm-cancel').addEventListener('click', () => { $('#confirm-dialog').close(); confirmAction = null; });
-$('#confirm-ok').addEventListener('click', () => { const action = confirmAction; $('#confirm-dialog').close(); confirmAction = null; if (action) action(); });
-$('#confirm-dialog').addEventListener('cancel', () => { confirmAction = null; });
-$('#delete-button').addEventListener('click', () => {
-  const id = editingId;
-  ask('この記録を削除しますか？', 'メモ・気持ち・追記を削除します。削除後は元に戻せません。', () => {
-    try { removeEntry(id); if (draft?.id === id) reset(); $('#edit-dialog').close(); renderCalendar(); toast('記録を削除しました。'); } catch (error) { report(error); }
-  });
-});
-function wordCard(word, featured = false) {
-  const node = el('article', featured ? '' : 'word-card');
-  const tag = word.category === 'proverb' ? 'ことわざ · 解説はluckyの言葉で' : 'lucky オリジナル';
-  node.append(el('span', 'word-tag', featured ? `今日のひとこと / ${tag}` : tag));
-  const favorite = button('', () => {
-    const next = favorites.includes(word.id) ? favorites.filter(id => id !== word.id) : [...favorites, word.id];
-    try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(next)); favorites = next; renderWords(); } catch { toast('お気に入りを保存できませんでした。'); }
-  }, 'favorite-button');
-  favorite.setAttribute('aria-label', `${favorites.includes(word.id) ? 'お気に入りから外す' : 'お気に入りに追加'}：${word.text.replaceAll('\n', '')}`);
-  favorite.setAttribute('aria-pressed', String(favorites.includes(word.id))); favorite.append(icon('heart'));
-  node.append(favorite, el('blockquote', '', word.text), el('p', '', word.note));
-  if (word.source) { const a = el('a', 'source-link', '語句の意味を確認：漢字ペディア ↗'); a.href = word.source; a.target = '_blank'; a.rel = 'noopener noreferrer'; node.append(a); }
-  return node;
-}
-function renderWords() {
-  $('#featured-word').replaceChildren(wordCard(dailyWord(dateKey()), true));
-  mark('[data-filter]', 'filter', wordFilter);
-  const list = $('#word-list'); list.replaceChildren();
-  const words = WORDS.filter(w => wordFilter === 'all' || (wordFilter === 'favorites' ? favorites.includes(w.id) : w.category === wordFilter));
-  if (!words.length) { const empty = el('div', 'empty-state'); empty.append(el('div', 'empty-icon', '♡'), el('h3', '', 'また読みたい言葉を、ここに。'), el('p', '', 'ハートを押すと、お気に入りに残せます。')); list.append(empty); }
-  words.forEach(w => list.append(wordCard(w)));
-}
-$$('[data-filter]').forEach(b => b.addEventListener('click', () => { wordFilter = b.dataset.filter; renderWords(); }));
-function openSettings() { $('#settings-dialog').showModal(); }
-$('#settings-open').addEventListener('click', openSettings); $('#backup-open').addEventListener('click', openSettings);
-$$('[data-close]').forEach(b => b.addEventListener('click', () => $(`#${b.dataset.close}`).close()));
-$('#export-button').addEventListener('click', () => {
-  try {
-    const entries = loadEntries(), blob = new Blob([JSON.stringify({ app: 'lucky', version: 2, exportedAt: new Date().toISOString(), entries }, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob), a = el('a'); a.href = url; a.download = `lucky-backup-${dateKey()}.json`; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
-    toast('バックアップファイルを用意しました。');
-  } catch (error) { report(error); }
-});
-$('#import-button').addEventListener('click', () => $('#import-file').click());
-$('#import-file').addEventListener('change', async event => {
-  const file = event.target.files?.[0]; event.target.value = ''; if (!file) return;
-  try {
-    if (file.size > 8_000_000) throw new Error('ファイルが大きすぎます。');
-    const incoming = parseBackup(await file.text());
-    ask('バックアップを読み込みますか？', `${incoming.length}件の記録を確認しました。同じIDの記録は上書きせず、新しい記録だけを追加します。`, () => {
-      try { mergeEntries(incoming); $('#settings-dialog').close(); renderCalendar(); navigate('calendar'); toast('バックアップを読み込みました。'); } catch (error) { report(error); }
-    });
-  } catch { toast('読み込めませんでした。luckyのJSONバックアップを確認してください。元の記録は変更していません。'); }
-});
-const colorScheme = matchMedia('(prefers-color-scheme: dark)'); let themeChoice = null;
-try { const raw = localStorage.getItem(THEME_KEY); if (['light', 'dark'].includes(raw)) themeChoice = raw; } catch { /* Optional. */ }
-function theme(value) { document.documentElement.dataset.theme = value; $('meta[name="theme-color"]').content = value === 'dark' ? '#191c20' : '#faf8f2'; $('#theme-toggle').setAttribute('aria-label', value === 'dark' ? 'ライトモードに切り替える' : 'ダークモードに切り替える'); }
-theme(themeChoice || (colorScheme.matches ? 'dark' : 'light'));
-$('#theme-toggle').addEventListener('click', () => { themeChoice = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; theme(themeChoice); try { localStorage.setItem(THEME_KEY, themeChoice); } catch { /* Session still works. */ } });
-colorScheme.addEventListener('change', e => { if (!themeChoice) theme(e.matches ? 'dark' : 'light'); });
-function navigate(value) { if (location.hash === `#${value}`) routeView(); else location.hash = value; }
-function routeView() {
-  let next = location.hash.slice(1); if (next === 'history') next = 'calendar'; if (next === 'about') { openSettings(); next = 'home'; }
-  if (!['home', 'calendar', 'words'].includes(next)) next = 'home';
-  if (busy && next !== 'home') { generation++; setBusy(false); $('#play-status').textContent = ''; }
-  route = next;
-  for (const id of ['home', 'calendar', 'words']) $(`#${id}-view`).hidden = id !== route;
-  $$('[data-route]').forEach(a => { if (a.dataset.route === route) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-  $('#today-label').textContent = new Intl.DateTimeFormat('ja-JP', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
-  $('#home-word-text').textContent = dailyWord(dateKey()).text;
-  if (route === 'calendar') renderCalendar(); if (route === 'words') renderWords();
-  if (route !== 'home') $(`#${route}-title`).focus({ preventScroll: true });
-  window.scrollTo({ top: 0, behavior: 'instant' });
-}
-window.addEventListener('hashchange', routeView);
-window.addEventListener('storage', e => { if ([RECORD_KEY, LEGACY_KEY].includes(e.key) && route === 'calendar') renderCalendar(); });
-window.addEventListener('beforeunload', e => { if ((!draft && ($('#decision-note').value || $('#before-text').value)) || (draft && !saved)) { e.preventDefault(); e.returnValue = ''; } });
-function connection() { $('#offline-indicator').hidden = navigator.onLine; }
-window.addEventListener('online', connection); window.addEventListener('offline', connection); connection(); routeView();
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').then(reg => reg.update()).catch(() => {}); });
-}
+function updateOnline(){$('#offline-indicator').hidden=navigator.onLine}
+function init(){initTheme();bind();const r=location.hash.slice(1);showView(TOP.has(r)?r:'home',{hash:false});updateOnline();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{})}
+init();
