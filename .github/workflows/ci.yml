@@ -28,7 +28,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: lucky-v2-ui-tests
+          name: lucky-v3-ui-tests
           path: test-results/
           retention-days: 7
   verify-deployment:
@@ -40,11 +40,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Verify real deployed v2 files (does not deploy)
+      - name: Verify real deployed v3 files (does not deploy)
         run: node scripts/verify-live.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: lucky-v2-live-verification
+          name: lucky-v3-live-verification
           path: live-verification.json
           retention-days: 7
