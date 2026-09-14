@@ -1,0 +1,32 @@
+name: Apply reference-faithful final UI
+
+on:
+  push:
+    branches: [design/reference-faithful-final]
+    paths: [reference-final.ready]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: design/reference-faithful-final
+      - name: Apply verified bundle
+        run: |
+          set -euo pipefail
+          cat reference-final.part* | base64 -d > reference-faithful-bundle.zip
+          unzip -t reference-faithful-bundle.zip
+          unzip -o reference-faithful-bundle.zip
+          rm reference-faithful-bundle.zip reference-final.part* reference-final.ready
+          rm .github/workflows/apply-reference-faithful-final.yml
+          npm run check
+          npm run build
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Match lucky UI to approved reference"
+          git push origin HEAD:design/reference-faithful-final
