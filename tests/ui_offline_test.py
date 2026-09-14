@@ -96,8 +96,8 @@ try:
             goto_top(page,route)
             check(f'no horizontal overflow {route} {width}', page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
 
-    count=len(data(page)); page.reload(); page.wait_for_selector('#home-start'); check('storage survives reload', len(data(page))==count)
-    page.evaluate('navigator.serviceWorker.ready'); page.wait_for_timeout(250); ctx.set_offline(True); page.reload(); page.wait_for_selector('#home-start'); check('service worker loads app offline', page.locator('#home-methods .method-mini-card').count()==5); ctx.set_offline(False)
+    count=len(data(page)); page.reload(); page.wait_for_selector('#bottom-nav'); goto_top(page,'home'); check('storage survives reload', len(data(page))==count)
+    page.evaluate('navigator.serviceWorker.ready'); page.wait_for_timeout(250); ctx.set_offline(True); page.reload(); page.wait_for_selector('#bottom-nav'); goto_top(page,'home'); check('service worker loads app offline', page.locator('#home-methods .method-mini-card').count()==5); ctx.set_offline(False)
     check('no uncaught JavaScript errors', errors==[])
     browser.close()
 
