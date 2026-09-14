@@ -1,0 +1,19 @@
+name: Reference design review
+on:
+  push:
+    branches: [design/reference-faithful]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bundle app for isolated visual review
+        run: tar -czf lucky-review-source.tar.gz public scripts tests docs package.json wrangler.jsonc AGENTS.md README.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lucky-review-source
+          path: lucky-review-source.tar.gz
+          retention-days: 1
