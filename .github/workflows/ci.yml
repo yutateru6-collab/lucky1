@@ -8,7 +8,7 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,30 +21,22 @@ jobs:
           python-version: '3.12'
       - run: pip install playwright==1.57.0
       - run: python -m playwright install --with-deps chromium
-      - name: Browser flows, storage and offline app
+      - name: Browser flows, privacy, migration and real offline app
         env:
           LUCKY_HTTP: '1'
         run: python tests/ui_offline_test.py
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: lucky-v3-ui-tests
-          path: test-results/
-          retention-days: 7
-  verify-deployment:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Verify real deployed v3 files (does not deploy)
+      - name: Verify exact deployed bytes (does not deploy)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: node scripts/verify-live.mjs
+      - name: Exercise the actual public app and capture screenshots
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: python tests/verify_public_ui.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: lucky-v3-live-verification
-          path: live-verification.json
+          name: lucky-v4-verification
+          path: |
+            test-results/
+            live-results/
+            live-verification.json
           retention-days: 7
