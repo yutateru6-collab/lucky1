@@ -59,7 +59,8 @@ try:
           const localDate=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Tokyo'}).format(new Date());
           localStorage.setItem('lucky.records.v2',JSON.stringify(['dice','roulette'].map((game,i)=>({version:2,id:'demo-record-'+i,note:i?'週末の過ごし方':'夕食のメニュー',beforeMood:null,beforeText:'',game,result:'yes',choice:'yes',feeling:null,reflection:'',createdAt:new Date(now-(i?86400000:10800000)).toISOString(),localDate}))));
         }""")
-        page.goto('http://127.0.0.1:4173/#home');page.wait_for_selector('#home-activity .activity-item')
+        # Reload explicitly: navigating to the same hash does not rerender seeded storage.
+        page.reload();page.wait_for_selector('#home-activity .activity-item')
         for width in [390,941]:
             page.set_viewport_size({'width':width,'height':844 if width==390 else 1672})
             page.screenshot(path=str(OUT/f'reference-home-DEMO-data-{width}.png'),full_page=True)
