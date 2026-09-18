@@ -1,0 +1,44 @@
+name: lucky gentle UX verification
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  gentle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run check && npm run build
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.57.0
+      - run: python -m playwright install --with-deps chromium
+      - name: Isolated app browser regression with real CSP and offline service worker
+        run: |
+          mkdir -p .gentle-test/tests
+          cp tests/gentle/ui_offline_test.py .gentle-test/tests/ui_offline_test.py
+          cp -r public/gentle .gentle-test/public
+          python .gentle-test/tests/ui_offline_test.py
+      - name: Exact public gentle build verification
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: node scripts/verify-gentle-live.mjs
+      - name: Actual deployed mobile, desktop and offline verification
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: python tests/gentle/verify_public_ui.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lucky-gentle-verification
+          path: |
+            .gentle-test/test-results/
+            gentle-live-results/
+            gentle-live-verification.json
+          include-hidden-files: true
+          retention-days: 7

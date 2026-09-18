@@ -1,8 +1,8 @@
-"""Read and exercise the actual deployed app in a fresh, non-user browser profile."""
+"""Exercise the actual deployed gentle app in a disposable browser profile."""
 import json, os, pathlib, shutil
 from playwright.sync_api import sync_playwright, expect
-OUT=pathlib.Path('live-results');OUT.mkdir(exist_ok=True)
-URL='https://lucky1.itisnowornever271.workers.dev/'
+OUT=pathlib.Path('gentle-live-results');OUT.mkdir(exist_ok=True)
+URL='https://lucky1.itisnowornever271.workers.dev/gentle/'
 errors=[]
 with sync_playwright() as p:
     browser=p.chromium.launch(headless=True,executable_path=os.environ.get('CHROMIUM_PATH') or shutil.which('chromium'),args=['--no-sandbox'])
@@ -26,6 +26,7 @@ with sync_playwright() as p:
     page.locator('[data-nav="home"]').click()
     page.evaluate('navigator.serviceWorker.ready.then(()=>true)')
     page.wait_for_function('navigator.serviceWorker.controller!==null')
+    assert '/gentle/' in page.evaluate('navigator.serviceWorker.controller.scriptURL')
     ctx.set_offline(True);page.reload(wait_until='domcontentloaded')
     expect(page.locator('#draw-button')).to_be_visible()
     page.locator('#draw-button').click();expect(page.locator('#result-view')).to_be_visible()
@@ -36,6 +37,6 @@ with sync_playwright() as p:
     assert q.evaluate('document.documentElement.scrollWidth<=innerWidth')
     desktop.close();browser.close()
 assert not errors,errors
-report={'url':URL,'version':'4.0.0','httpStatus':200,'passed':True,'checks':['live mobile and desktop render','draw without memo','independent choice saved in isolated localStorage','calendar entry visible','actual service worker offline reload and draw'],'browserErrors':errors}
+report={'url':URL,'version':'4.0.0','httpStatus':200,'passed':True,'checks':['live mobile and desktop render','draw without memo','independent choice saved in isolated localStorage','calendar entry visible','scoped service worker offline reload and draw'],'browserErrors':errors}
 (OUT/'public-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
 print(json.dumps(report,ensure_ascii=False,indent=2))

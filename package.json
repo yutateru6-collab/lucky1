@@ -1,9 +1,9 @@
 {
   "name": "lucky-little-chance",
-  "version": "4.0.0",
+  "version": "3.1.0",
   "private": true,
   "type": "module",
-  "description": "迷ったときの、小さな味方。決めるのはあなた。きっかけは偶然。",
+  "description": "迷う時間を、たのしい時間に。小さな選択に50/50の偶然を。",
   "engines": {
     "node": ">=22"
   },
@@ -12,7 +12,7 @@
     "check": "node --check public/app.mjs && node --check public/games.mjs && node --check public/journal.mjs && node --check public/words.mjs && node --check public/sw.js && npm test",
     "build": "node scripts/build.mjs",
     "deploy": "npx wrangler@4 deploy",
-    "pretest": "node scripts/generate-icons.mjs",
-    "prebuild": "node scripts/generate-icons.mjs"
+    "pretest": "node scripts/generate-gentle-icons.mjs",
+    "prebuild": "node scripts/generate-gentle-icons.mjs"
   }
 }

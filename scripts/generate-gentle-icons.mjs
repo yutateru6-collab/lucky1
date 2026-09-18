@@ -1,7 +1,7 @@
 /** Dependency-free PNG renderer for the SVG clover geometry; called before test/build. */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { deflateSync } from 'node:zlib';
-const dir = new URL('../public/icons/', import.meta.url);
+const dir = new URL('../public/gentle/icons/', import.meta.url);
 await mkdir(dir, { recursive: true });
 const colors = { bg: [33, 79, 60], line: [91, 119, 92], leaf: [238, 233, 214], dot: [214, 183, 118] };
 function curve(a, b, c, d) {
@@ -27,4 +27,4 @@ function render(size) {
   return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',header),chunk('IDAT',deflateSync(data,{level:9})),chunk('IEND',Buffer.alloc(0))]);
 }
 for(const [name,size] of [['icon-192.png',192],['icon-512.png',512],['apple-touch-icon.png',180],['maskable-512.png',512]]) await writeFile(new URL(name,dir),render(size));
-console.log('Generated 192/512/apple/maskable PNG icons from clover geometry.');
+console.log('Generated gentle-only 192/512/apple/maskable PNG icons. Original app unchanged.');

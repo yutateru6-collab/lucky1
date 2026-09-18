@@ -1,11 +1,11 @@
-/* Only app-shell resources are cached. User notes never enter Cache Storage. */
-const CACHE_NAME = 'lucky-shell-v3.1.0';
-const FILES = ['./', './index.html', './styles.css', './reference.css', './assets/reference-art.webp', './assets/page-doodles.svg', './app.mjs', './decision.mjs', './games.mjs', './journal.mjs', './words.mjs', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
+/* Cache only this app shell, never personal notes or the original app's cache. */
+const CACHE_NAME = 'lucky-gentle-shell-v4.0.0';
+const FILES = ['./', './index.html', './styles.css', './app.mjs', './decision.mjs', './games.mjs', './journal.mjs', './words.mjs', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('lucky-shell-') && key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim()));
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('lucky-gentle-shell-') && key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
