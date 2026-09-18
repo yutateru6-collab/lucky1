@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#fffaf8">
   <meta name="description" content="迷う時間を、たのしい時間に。小さな選択を偶然と遊びながら決めて、気持ちと一緒に残せる lucky。">
-  <meta name="lucky-version" content="3.0.0">
+  <meta name="lucky-version" content="3.1.0">
   <title>lucky — 迷う時間を、たのしい時間に。</title>
   <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./reference.css">
   <script type="module" src="./app.mjs"></script>
 </head>
 <body>
@@ -18,22 +19,27 @@
 
   <div id="app-shell" class="app-shell">
     <header class="topbar">
-      <a href="#home" class="logo" aria-label="lucky ホーム">
-        <span class="logo-clover" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-        <span>lucky</span><b>✦</b>
-      </a>
-      <div class="topbar-copy"><span>ちょっとの選択で</span><strong>毎日をたのしく ☺</strong></div>
+      <a href="#home" class="logo" aria-label="lucky ホーム"><span class="reference-art art-logo" aria-hidden="true"></span></a>
+      
       <div class="topbar-actions">
         <span id="offline-indicator" class="offline-badge" hidden>オフライン</span>
-        <button id="quick-settings" class="icon-button" type="button" aria-label="設定を開く">⚙</button>
+        <button id="home-notices" class="icon-button notice-button" type="button" aria-label="luckyからのお知らせ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 8-3 8-3 10h18c0-2-3-2-3-10Z"/><path d="M10 21h4M12 1v1"/></svg></button>
       </div>
     </header>
 
     <main id="app-main" tabindex="-1">
       <section id="home-view" class="view active" data-view="home" aria-labelledby="home-title">
+        <div class="home-intro">
+          <div><p id="greeting-label">おはよう！</p><p>すてきな選択で、<br>きっといい一日になるよ！</p></div>
+          <p class="intro-handwriting">迷う時間も<br>たのしい時間に！</p>
+        </div>
         <div class="home-greeting">
-          <div><p id="greeting-label" class="mini-copy">おはよう！</p><h1 id="home-title">今日のちいさな選択で、<br><span>いい一日に。</span></h1><p>迷うことも、きっと楽しい。<br>luckyと一緒に、今日をはじめよう！</p><button id="home-start" class="primary-button" type="button">決めてみる <span>›</span></button></div>
-          <div class="mascot mascot-heart" aria-hidden="true"><div class="cloud-face"><span class="eye left"></span><span class="eye wink"></span><span class="mouth"></span><span class="cheek c1"></span><span class="cheek c2"></span><i class="heart-shape"></i></div><small>きっと<br>うまくいくよ!</small></div>
+          <div class="hero-copy">
+            <h1 id="home-title">今日のちいさな選択で、<br><span>いい一日に。</span></h1>
+            <p>迷うことも、きっと楽しい。<br>luckyと一緒に、今日をはじめよう！</p>
+            <button id="home-start" class="primary-button" type="button">決めてみる <span aria-hidden="true">›</span></button>
+          </div>
+          <div class="mascot mascot-heart" aria-hidden="true"><span class="reference-art art-mascot"></span><small>きっと<br>うまくいくよ！</small><span class="floating-heart">♥</span><i class="hero-star star-a">✦</i><i class="hero-star star-b">✦</i><i class="hero-star star-c">✦</i><span class="hero-rays"></span></div>
         </div>
 
         <section class="home-section methods-strip" aria-labelledby="home-methods-title">
@@ -43,21 +49,22 @@
 
         <div class="home-dashboard-grid">
           <section class="dashboard-card recent-drafts-card" aria-labelledby="recent-drafts-title">
-            <div class="card-heading"><h2 id="recent-drafts-title">🗒 最近のメモ</h2><button id="all-drafts-button" class="link-button" type="button">すべて見る ›</button></div>
+            <div class="card-heading"><h2 id="recent-drafts-title"><span class="heading-icon memo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="19" rx="2"/><path d="M8 1v5m4-5v5m4-5v5M8 10h8m-8 4h8m-8 4h5"/></svg></span>最近のメモ</h2><button id="all-drafts-button" class="link-button" type="button">すべて見る ›</button></div>
             <div id="home-drafts" class="compact-list"></div>
           </section>
 
           <section class="dashboard-card today-word-card" aria-labelledby="today-word-title">
-            <div class="card-heading"><h2 id="today-word-title">☀ 今日のことば</h2><button id="home-word-next" class="link-button" type="button" aria-label="別のことばを見る">↻</button></div>
-            <blockquote id="home-word-text"></blockquote>
+            <div class="card-heading"><h2 id="today-word-title"><span class="heading-icon sun-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/><path d="M12 1v2m0 18v2M1 12h2m18 0h2M4.2 4.2l1.5 1.5m12.6 12.6 1.5 1.5m0-15.6-1.5 1.5M5.7 18.3l-1.5 1.5"/></svg></span>今日のことば</h2><button id="home-word-next" class="link-button" type="button" aria-label="別のことばを見る">↻</button></div>
+            <div class="word-cloud"><blockquote id="home-word-text"></blockquote><span class="word-smile" aria-hidden="true">☺</span></div>
             <button id="home-word-open" class="tiny-button" type="button">もっと読む ›</button>
           </section>
 
           <section class="dashboard-card activity-card" aria-labelledby="activity-title">
-            <div class="card-heading"><h2 id="activity-title">◷ 最近のアクティビティ</h2><button id="activity-all" class="link-button" type="button">すべて見る ›</button></div>
+            <div class="card-heading"><h2 id="activity-title"><span class="heading-icon clock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6v7l4 2"/></svg></span>最近のアクティビティ</h2><button id="activity-all" class="link-button" type="button">すべて見る ›</button></div>
             <div id="home-activity" class="activity-list"></div>
           </section>
         </div>
+        <div class="home-signoff" aria-hidden="true"><span>Good Choice<br>Good Day!</span><span>きょうも、<br>いいことあるよ！</span></div>
       </section>
 
       <section id="choose-view" class="view" data-view="choose" hidden aria-labelledby="choose-title">
@@ -91,7 +98,10 @@
       </section>
 
       <section id="words-view" class="view" data-view="words" hidden aria-labelledby="words-title">
-        <div class="page-hero compact-hero"><p class="mini-copy">ことばで、こころにいい風を。</p><h1 id="words-title">ことば</h1><p>ことばの力で、ちょっといい気分になろう！</p></div>
+        <div class="page-hero compact-hero"><p class="mini-copy">ちいさな一歩の、きっかけを。</p><h1 id="words-title">さがす</h1><p>今日の迷いも、ぴったりのことばも。</p></div>
+        <label class="idea-search"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 6 6"/></svg></span><input id="idea-search" type="search" placeholder="ごはん、おでかけ、ひとこと…" aria-label="迷いのヒントをさがす"></label>
+        <section aria-labelledby="ideas-title" class="ideas-section"><h2 id="ideas-title">こんなとき、luckyに。</h2><div id="idea-results" class="idea-grid"></div><p id="idea-empty" hidden>見つかりませんでした。言葉を変えて探してみよう。</p></section>
+        <h2 class="words-section-title">こころに、ちいさなことば。</h2>
         <div id="word-filters" class="chip-tabs" role="group" aria-label="ことばのカテゴリ">
           <button type="button" data-word-filter="all" aria-pressed="true">♡ やさしいことば</button>
           <button type="button" data-word-filter="proverb" aria-pressed="false">🌱 ことわざ</button>
@@ -167,13 +177,20 @@
     </main>
 
     <nav id="bottom-nav" class="bottom-nav" aria-label="メインメニュー">
-      <a href="#home" data-nav="home"><span>⌂</span><b>ホーム</b></a>
-      <a href="#choose" data-nav="choose"><span class="nav-clover">✣</span><b>えらぶ</b></a>
-      <a href="#history" data-nav="history"><span>◷</span><b>履歴</b></a>
-      <a href="#words" data-nav="words"><span>☵</span><b>ことば</b></a>
-      <a href="#profile" data-nav="profile"><span>♙</span><b>マイページ</b></a>
+      <a href="#home" data-nav="home" class="active" aria-current="page"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></span><b>ホーム</b></a>
+      <a href="#words" data-nav="words"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 6 6"/></svg></span><b>さがす</b></a>
+      <a href="#choose" data-nav="choose"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 11H6a4 4 0 1 1 5-5Zm2 0V6a4 4 0 1 1 5 5Zm0 2h5a4 4 0 1 1-5 5Zm-2 0v5a4 4 0 1 1-5-5Z" fill="currentColor" stroke="none"/></svg></span><b>えらぶ</b></a>
+      <a href="#history" data-nav="history"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6v7l4 2"/></svg></span><b>履歴</b></a>
+      <a href="#profile" data-nav="profile"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="6" r="4"/><path d="M3 22v-2a9 9 0 0 1 18 0v2Z"/></svg></span><b>マイページ</b></a>
     </nav>
   </div>
+
+  <dialog id="notice-dialog" class="sheet-dialog"><form method="dialog" class="sheet-card">
+    <div class="sheet-head"><h2>luckyからのお知らせ</h2><button class="icon-button" aria-label="閉じる">×</button></div>
+    <section><h3>迷ったときに、ちいさな偶然を。</h3><p>5つの決め方から、好きなものをえらんでみてね。出た答えと違うほうを選んでも大丈夫。</p></section>
+    <section><h3>メモも気持ちも、この端末に。</h3><p>途中のメモから再開できます。残した記録は「履歴」から見返せます。</p></section>
+    <button id="quick-settings" class="soft-button wide" type="button">設定を開く</button>
+  </form></dialog>
 
   <dialog id="settings-dialog" class="sheet-dialog">
     <form method="dialog" class="sheet-card">

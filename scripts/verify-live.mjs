@@ -2,8 +2,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 const candidates = ['https://lucky1.itisnowornever271.workers.dev', 'https://lucky1.branch-mascarpone.workers.dev'];
-const version = '3.0.0';
-const paths = ['index.html', 'app.mjs', 'styles.css', 'games.mjs', 'journal.mjs', 'words.mjs', 'sw.js'];
+const version = JSON.parse(await readFile('package.json', 'utf8')).version;
+const paths = ['index.html', 'app.mjs', 'styles.css', 'games.mjs', 'journal.mjs', 'words.mjs', 'sw.js', 'reference.css', 'assets/reference-art.webp', 'assets/page-doodles.svg'];
 const expected = new Map(await Promise.all(paths.map(async p => [p, createHash('sha256').update(await readFile(`public/${p}`)).digest('hex')])));
 let verified = null, observations = [];
 for (let attempt = 0; attempt < 12 && !verified; attempt++) {

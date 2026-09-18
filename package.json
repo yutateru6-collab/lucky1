@@ -1,10 +1,12 @@
 {
   "name": "lucky-little-chance",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
   "type": "module",
   "description": "迷う時間を、たのしい時間に。小さな選択に50/50の偶然を。",
-  "engines": {"node": ">=22"},
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "check": "node --check public/app.mjs && node --check public/games.mjs && node --check public/journal.mjs && node --check public/words.mjs && node --check public/sw.js && npm test",
