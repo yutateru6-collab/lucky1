@@ -1,4 +1,4 @@
-"""Browser smoke tests for lucky v3.
+"""Browser smoke tests for lucky v4.
 LUCKY_HTTP=1 runs the actual module app from the local static server, including storage and PWA shell.
 """
 import json, os, subprocess, time
@@ -19,7 +19,11 @@ def check(name, condition):
     checks.append(name); print('PASS', name, flush=True)
 def data(page): return json.loads(page.evaluate('localStorage.getItem("lucky.records.v2")') or '[]')
 def goto_top(page, route):
-    page.locator(f'[data-nav="{route}"]').click(); page.locator(f'#{route}-view').wait_for(state='visible')
+    if route == 'words':
+        page.evaluate("location.hash = 'words'")
+    else:
+        page.locator(f'[data-nav="{route}"]').click()
+    page.locator(f'#{route}-view').wait_for(state='visible')
 
 def load(browser, width=390, height=844):
     ctx=browser.new_context(viewport={'width':width,'height':height},locale='ja-JP',timezone_id='Asia/Tokyo',reduced_motion='reduce')
@@ -41,7 +45,7 @@ try:
     check('home has five decision methods', page.locator('#home-methods .method-mini-card').count()==5)
     check('home primary CTA visible', page.locator('#home-start').is_visible())
     check('five bottom tabs visible', page.locator('#bottom-nav [data-nav]').count()==5)
-    page.screenshot(path=str(OUT/'home-v3-mobile.png'), full_page=True)
+    page.screenshot(path=str(OUT/'home-v4-mobile.png'), full_page=True)
 
     page.click('#home-start'); page.locator('#memo-view').wait_for(state='visible')
     page.fill('#decision-note','初めての喫茶店に入る？')
@@ -55,7 +59,7 @@ try:
     check('coin yes result renders', page.locator('#result-title').inner_text()=='やってみる！')
     check('random result alone is not saved', len(data(page))==0)
     page.click('[data-choice="no"]'); page.click('[data-feeling="relieved"]'); page.fill('#reflection','今日は見送って、また今度。')
-    page.screenshot(path=str(OUT/'result-v3-mobile.png'), full_page=True)
+    page.screenshot(path=str(OUT/'result-v4-mobile.png'), full_page=True)
     page.click('#save-result'); page.locator('#record-view').wait_for(state='visible')
     record=data(page)[0]
     check('result and own choice are stored independently', record['result']=='yes' and record['choice']=='no')
@@ -65,14 +69,14 @@ try:
     page.click('[data-record-back]'); page.locator('#history-view').wait_for(state='visible')
     check('calendar contains 42 days', page.locator('#calendar-days button').count()==42)
     check('history contains saved record', page.locator('#history-records .record-card-button').count()>=1)
-    page.screenshot(path=str(OUT/'history-v3-mobile.png'), full_page=True)
+    page.screenshot(path=str(OUT/'history-v4-mobile.png'), full_page=True)
 
     goto_top(page,'words')
     check('words feed is populated', page.locator('#words-feed .word-card').count()>=10)
     page.locator('#words-feed .favorite-button').first.click()
     page.click('[data-word-filter="favorites"]')
     check('favorites filter works', page.locator('#words-feed .word-card').count()==1)
-    page.screenshot(path=str(OUT/'words-v3-mobile.png'), full_page=True)
+    page.screenshot(path=str(OUT/'words-v4-mobile.png'), full_page=True)
 
     goto_top(page,'profile')
     check('profile stats render', page.locator('#profile-stats .stat-card').count()==4)
@@ -86,13 +90,13 @@ try:
     calls=page.evaluate('window.randomCalls'); page.click('#game-controls .primary-button'); page.wait_for_timeout(100)
     check('serious decision safety guard runs before randomness', page.evaluate('window.randomCalls')==calls and page.locator('#result-view').is_hidden())
 
-    page.locator('#game-view .close-flow').click(); page.locator('#home-view').wait_for(state='visible'); page.click('#home-notices'); page.click('#quick-settings'); page.click('#theme-dark')
+    page.locator('#game-view .close-flow').click(); page.locator('#home-view').wait_for(state='visible'); page.click('#quick-settings'); page.click('#theme-dark')
     check('dark mode can be enabled', page.evaluate('document.documentElement.dataset.theme')=='dark')
     page.locator('#settings-dialog').evaluate('el=>el.close()')
-    page.screenshot(path=str(OUT/'dark-v3-mobile.png'))
+    page.screenshot(path=str(OUT/'dark-v4-mobile.png'))
     for width in [320,390,768,1200]:
         page.set_viewport_size({'width':width,'height':900 if width>800 else 844})
-        for route in ['home','choose','history','words','profile']:
+        for route in ['home','search','choose','history','words','profile']:
             goto_top(page,route)
             check(f'no horizontal overflow {route} {width}', page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
 

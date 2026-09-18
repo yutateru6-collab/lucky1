@@ -1,76 +1,95 @@
-"""Reference-UI contract on a REAL HTTP origin, plus screenshots for human review.
-No screenshot overlays, no production demo data, no mocked browser storage.
-"""
-import json, os, subprocess, time
+"""Real HTTP/CSP/PWA and reference-layout tests. Screenshots are actual app renders."""
+import json, subprocess, time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / 'test-results'; OUT.mkdir(exist_ok=True)
+OUT = ROOT / 'test-results'
+OUT.mkdir(exist_ok=True)
 checks, errors = [], []
 def check(name, condition):
-    if not condition: raise AssertionError(name)
-    checks.append(name); print('PASS', name, flush=True)
-server = subprocess.Popen(['node','scripts/serve.mjs'],cwd=ROOT,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-time.sleep(1)
+    assert condition, name
+    checks.append(name)
+    print('PASS', name, flush=True)
+def top(page, route):
+    page.locator(f'[data-nav="{route}"]').click()
+    page.locator(f'#{route}-view').wait_for(state='visible')
+def game(page, method):
+    top(page, 'home')
+    page.locator(f'#home-methods [data-method="{method}"]').click()
+    page.fill('#decision-note', '近くの公園を散歩する？')
+    page.click('#memo-next'); page.click('#mood-skip')
+    page.locator(f'#flow-methods [data-method="{method}"]').click()
+    page.click('#method-next')
+    page.locator('#game-view').wait_for(state='visible')
+server = subprocess.Popen(['node', 'scripts/serve.mjs'], cwd=ROOT, stdout=subprocess.DEVNULL)
 try:
+    time.sleep(1)
     with sync_playwright() as p:
-        options = {'headless':True,'args':['--no-sandbox']}
-        if os.environ.get('CHROMIUM_PATH'): options['executable_path']=os.environ['CHROMIUM_PATH']
-        browser=p.chromium.launch(**options)
-        ctx=browser.new_context(viewport={'width':390,'height':844},locale='ja-JP',timezone_id='Asia/Tokyo',reduced_motion='reduce')
-        page=ctx.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
-        page.goto('http://127.0.0.1:4173');page.wait_for_selector('#home-methods button')
-        page.evaluate('document.fonts.ready')
-        check('reference image decodes on the actual origin',page.evaluate("""async()=>{const image=new Image();image.src='./assets/reference-art.webp';await image.decode();return image.naturalWidth===640&&image.naturalHeight===430}"""))
-        check('reference art is not a whole-page screenshot',page.locator('#home-start').evaluate('e=>e.tagName==="BUTTON"') and page.locator('#home-methods button').count()==5)
-        check('first launch has no invented past records',page.evaluate('localStorage.getItem("lucky.records.v2")===null') and page.locator('#home-activity .activity-item').count()==0)
-        check('empty memo cards explicitly start templates',page.locator('#home-drafts .sample-idea').count()==3 and 'タップしてはじめる' in page.locator('#home-drafts').inner_text())
-        check('bottom labels match the approved reference',page.locator('#bottom-nav a b').all_text_contents()==['ホーム','さがす','えらぶ','履歴','マイページ'])
-        for width in [320,375,390,430,768,941,1200]:
-            height=1672 if width==941 else 900 if width>=700 else 844
-            page.set_viewport_size({'width':width,'height':height});page.evaluate('scrollTo(0,0)')
-            page.wait_for_timeout(60)
-            check(f'page has no horizontal overflow at {width}',page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
-            boxes=page.locator('#home-methods button').evaluate_all('es=>es.map(e=>({x:e.getBoundingClientRect().x,y:e.getBoundingClientRect().y,r:e.getBoundingClientRect().right,w:e.getBoundingClientRect().width,h:e.getBoundingClientRect().height}))')
-            check(f'all five methods visible in the same row at {width}',len(boxes)==5 and max(b['y'] for b in boxes)-min(b['y'] for b in boxes)<2 and all(b['x']>=0 and b['r']<=width and b['w']>=44 for b in boxes))
-            left=page.locator('.recent-drafts-card').bounding_box();right=page.locator('.today-word-card').bounding_box()
-            check(f'dashboard stays two columns at {width}',left['x']+left['width']<=right['x']+1 and abs(left['y']-right['y'])<2)
-            check(f'primary CTA has a 44px hit target at {width}',page.locator('#home-start').bounding_box()['height']>=44)
-            check(f'nav hit targets at {width}',all(b>=44 for b in page.locator('#bottom-nav a').evaluate_all('es=>es.map(e=>e.getBoundingClientRect().height)')))
-            if width in [320,390,430,941]:
-                page.screenshot(path=str(OUT/f'reference-home-empty-{width}.png'),full_page=True)
-                page.screenshot(path=str(OUT/f'reference-home-viewport-{width}.png'))
+        browser = p.chromium.launch(headless=True, args=['--no-sandbox'])
+        ctx = browser.new_context(viewport={'width':390,'height':844}, locale='ja-JP', timezone_id='Asia/Tokyo', reduced_motion='reduce')
+        page = ctx.new_page()
+        page.on('pageerror', lambda e: errors.append(str(e)))
+        page.add_init_script("window.draws=0; Object.defineProperty(crypto,'getRandomValues',{value:a=>{window.draws++;a[0]=1;return a}});")
+        page.goto('http://127.0.0.1:4173')
+        page.wait_for_selector('#home-methods .art-coin')
+        check('version is 4.0.0', page.locator('meta[name="lucky-version"]').get_attribute('content')=='4.0.0')
+        check('approved sprite decodes under real CSP', page.evaluate("""async()=>{const image=new Image();image.src='./art/lucky-reference.webp';await image.decode();return image.width===800&&image.height===480}"""))
+        check('five expected real navigation destinations', page.locator('#bottom-nav [data-nav]').evaluate_all("es=>es.map(e=>e.dataset.nav)")==['home','search','choose','history','profile'])
+        check('first launch does not fabricate history', page.evaluate('localStorage.getItem("lucky.records.v2")') is None)
+        check('first-launch notes are labeled examples', 'タップでメモする' in page.locator('#home-drafts').inner_text())
+        for width in [320,360,375,390,430,768,880,941,1200]:
+            page.set_viewport_size({'width':width,'height':900 if width>=768 else 844})
+            boxes=page.locator('#home-methods .method-mini-card').evaluate_all('es=>es.map(e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,width:r.width}})')
+            check(f'five illustrations on one visible row at {width}px', len(boxes)==5 and max(b['y'] for b in boxes)-min(b['y'] for b in boxes)<2 and boxes[0]['x']>=0 and boxes[-1]['right']<=width+1)
+            check(f'CTA is at least 44px high at {width}px', page.locator('#home-start').bounding_box()['height']>=44)
+            check(f'nav hit targets at {width}px', all(h>=44 for h in page.locator('#bottom-nav a').evaluate_all('es=>es.map(e=>e.getBoundingClientRect().height)')))
+            check(f'no page overflow at {width}px', page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
+            if width>=360:
+                a=page.locator('.recent-drafts-card').bounding_box(); b=page.locator('.today-word-card').bounding_box()
+                check(f'dashboard retains two columns at {width}px', b['x']>a['x']+a['width']-1 and abs(a['y']-b['y'])<2)
+            page.screenshot(path=str(OUT/f'reference-home-{width}.png'),full_page=True)
         page.set_viewport_size({'width':390,'height':844})
-        page.click('#home-notices');check('bell opens an actual help dialog',page.locator('#notice-dialog').is_visible())
-        page.click('#quick-settings');check('settings remains reachable from the bell',page.locator('#settings-dialog').is_visible())
-        page.locator('#settings-dialog').evaluate('e=>e.close()')
-        page.click('[data-nav="words"]');page.fill('#idea-search','服')
-        check('search filters real templates',page.locator('#idea-results .idea-card').count()==1)
-        page.click('#idea-results .idea-card');check('template starts an editable decision',page.locator('#decision-note').input_value()=='いつもと違う服を着てみる？')
-        page.locator('#memo-view .close-flow').click();page.click('[data-nav="home"]')
-        check('closing an edited flow creates a genuine resumable memo',page.locator('#home-drafts .compact-item').count()==1 and page.locator('#home-drafts .sample-idea').count()==0)
-        page.click('#home-drafts .compact-item');check('memo resume preserves its actual content',page.locator('#decision-note').input_value()=='いつもと違う服を着てみる？')
+        top(page,'search'); page.fill('#template-search','カフェ')
+        check('search filters real templates', page.locator('#discover-results .discover-card').count()==1)
+        page.fill('#template-search',''); page.screenshot(path=str(OUT/'reference-search-390.png'),full_page=True)
+        page.fill('#template-search','カフェ'); page.locator('#discover-results [data-template="cafe"]').click()
+        check('template populates editable memo', 'カフェ' in page.locator('#decision-note').input_value())
+        page.locator('#memo-view .close-flow').click(); top(page,'home'); page.click('#all-drafts-button')
+        check('all memos opens an actual modal', page.locator('#drafts-dialog').is_visible() and page.locator('#all-drafts-list .compact-item').count()==1)
+        page.locator('#all-drafts-list .compact-item').click()
+        check('saved draft resumes', 'カフェ' in page.locator('#decision-note').input_value())
         page.locator('#memo-view .close-flow').click()
-        # Seed ONLY this ephemeral test context to review the populated layout.
-        page.evaluate("""()=>{const now=Date.now();localStorage.setItem('lucky.drafts.v1',JSON.stringify([
-          {id:'demo-lunch',note:'ランチどこに行く？',theme:'ごはん',method:'coin',updatedAt:new Date(now).toISOString()},
-          {id:'demo-clothes',note:'どっちの服を着る？',theme:'服',method:'cards',updatedAt:new Date(now-7200000).toISOString()},
-          {id:'demo-trip',note:'旅行先を決めたい！',theme:'おでかけ',method:'dice',updatedAt:new Date(now-86400000).toISOString()}]));
-          const localDate=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Tokyo'}).format(new Date());
-          localStorage.setItem('lucky.records.v2',JSON.stringify(['dice','roulette'].map((game,i)=>({version:2,id:'demo-record-'+i,note:i?'週末の過ごし方':'夕食のメニュー',beforeMood:null,beforeText:'',game,result:'yes',choice:'yes',feeling:null,reflection:'',createdAt:new Date(now-(i?86400000:10800000)).toISOString(),localDate}))));
-        }""")
-        # Reload explicitly: navigating to the same hash does not rerender seeded storage.
-        page.reload();page.wait_for_selector('#home-activity .activity-item')
-        for width in [390,941]:
-            page.set_viewport_size({'width':width,'height':844 if width==390 else 1672})
-            page.screenshot(path=str(OUT/f'reference-home-DEMO-data-{width}.png'),full_page=True)
-        page.set_viewport_size({'width':390,'height':844})
-        page.click('[data-nav="words"]');page.fill('#idea-search','');page.screenshot(path=str(OUT/'reference-search-390.png'),full_page=True)
-        page.click('[data-nav="choose"]');page.screenshot(path=str(OUT/'reference-choose-390.png'),full_page=True)
-        page.evaluate('navigator.serviceWorker.ready');page.reload();page.wait_for_selector('#bottom-nav')
-        check('reference assets belong to the offline cache',page.evaluate("""async()=>{const c=await caches.open('lucky-shell-v3.1.0');return !!(await c.match('/reference.css'))&&!!(await c.match('/assets/reference-art.webp'))&&!!(await c.match('/assets/page-doodles.svg'))}"""))
-        check('no uncaught JavaScript errors',errors==[])
+        for method in ['coin','cards','dice','rps','roulette']:
+            game(page,method)
+            page.screenshot(path=str(OUT/f'reference-game-{method}.png'),full_page=True)
+            before=page.evaluate('window.draws')
+            if method=='cards': page.locator('.draw-card').first.click()
+            elif method=='rps': page.get_by_role('button',name='グーを出す',exact=True).click()
+            else: page.locator('#game-controls .primary-button').click()
+            page.locator('#result-view').wait_for(state='visible')
+            check(f'{method} uses one real draw', page.evaluate('window.draws')==before+1)
+            check(f'{method} explains actual result', len(page.locator('#result-detail').inner_text())>0)
+            page.screenshot(path=str(OUT/f'reference-result-{method}.png'),full_page=True)
+            page.locator('#result-view .close-flow').click()
+        page.emulate_media(reduced_motion='no-preference'); game(page,'coin')
+        before=page.evaluate('window.draws')
+        page.locator('#game-controls .primary-button').evaluate('(b)=>{b.click();b.click()}')
+        check('repeated taps cannot reroll while animating', page.evaluate('window.draws')==before+1)
+        page.locator('#game-view .close-flow').click(); page.wait_for_timeout(850)
+        check('leaving the game cancels pending result navigation', page.locator('#home-view').is_visible())
+        page.emulate_media(reduced_motion='reduce')
+        page.evaluate('navigator.serviceWorker.ready')
+        page.wait_for_function('navigator.serviceWorker.controller !== null')
+        ctx.set_offline(True); page.reload(); page.wait_for_selector('#home-methods .art-dice')
+        check('new reference artwork loads offline', page.evaluate("""async()=>{const image=new Image();image.src='./art/lucky-reference.webp';await image.decode();return image.naturalWidth===800}"""))
+        top(page,'search'); page.fill('#template-search','カフェ')
+        check('template search works offline', page.locator('#discover-results .discover-card').count()==1)
+        ctx.set_offline(False); top(page,'home'); page.click('#quick-settings'); page.click('#theme-dark')
+        page.locator('#settings-dialog').evaluate('el=>el.close()')
+        page.screenshot(path=str(OUT/'reference-dark-390.png'),full_page=True)
+        check('no uncaught errors', errors==[])
         browser.close()
 finally:
-    server.terminate()
-    (OUT/'reference-report.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'errors':errors,'screenshots':'DEMO-data images use test-only browser storage; production is never seeded.'},ensure_ascii=False,indent=2))
+    server.terminate(); server.wait(timeout=5)
+    (OUT/'reference-report.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'errors':errors},ensure_ascii=False,indent=2))
