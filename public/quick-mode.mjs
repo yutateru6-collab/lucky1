@@ -11,7 +11,7 @@ const METHODS = Object.freeze({
   rps: { label: 'じゃんけん', icon: '✌️', rule: '勝ち / 負けで50 / 50' },
   roulette: { label: 'ルーレット', icon: '🎡', rule: '8マスを半分ずつ' }
 });
-const storedMethod = localStorage.getItem(METHOD_KEY);
+const storedMethod = (() => { try { return localStorage.getItem(METHOD_KEY); } catch { return null; } })();
 const state = {
   method: Object.hasOwn(METHODS, storedMethod) ? storedMethod : 'coin',
   result: null,
