@@ -1,6 +1,6 @@
 /* Cache only this app shell, never personal notes or the original app's cache. */
-const CACHE_NAME = 'lucky-gentle-shell-v4.1.0';
-const FILES = ['./', './index.html', './styles.css', './quick-mode.css', './app.mjs', './quick-mode.mjs', './decision.mjs', './games.mjs', './journal.mjs', './words.mjs', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'];
+const CACHE_NAME = 'lucky-gentle-shell-v4.0.0';
+const FILES = ['./', './index.html', './styles.css', './app.mjs', './decision.mjs', './games.mjs', './journal.mjs', './words.mjs', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES)).then(() => self.skipWaiting()));
 });
