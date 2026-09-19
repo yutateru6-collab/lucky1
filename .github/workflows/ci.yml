@@ -25,6 +25,8 @@ jobs:
         env:
           LUCKY_HTTP: '1'
         run: python tests/ui_offline_test.py
+      - name: Quick choice keeps the approved home and saves only after result
+        run: python tests/quick_mode_test.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
