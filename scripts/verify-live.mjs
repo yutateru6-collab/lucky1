@@ -2,7 +2,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 const candidates = ['https://lucky1.itisnowornever271.workers.dev', 'https://lucky1.branch-mascarpone.workers.dev'];
-const version = '4.0.1';
+const version = '4.0.2';
 const paths = ['index.html', 'app.mjs', 'quick-mode.mjs', 'styles.css', 'quick-mode.css', 'visuals.mjs', 'art/lucky-reference.webp', 'games.mjs', 'journal.mjs', 'words.mjs', 'sw.js'];
 const expected = new Map(await Promise.all(paths.map(async p => [p, createHash('sha256').update(await readFile(`public/${p}`)).digest('hex')])));
 let verified = null, observations = [];
