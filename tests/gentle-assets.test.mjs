@@ -24,7 +24,7 @@ test('gentle uses text-only personal content and no note transmission', async ()
 });
 test('gentle cache cannot delete original app caches', async () => {
   const sw = await read('sw.js');
-  assert.ok(sw.includes('lucky-gentle-shell-v4.0.0'));
+  assert.ok(sw.includes('lucky-gentle-shell-v4.1.0'));
   assert.ok(sw.includes("key.startsWith('lucky-gentle-shell-')"));
   assert.ok(!sw.includes("key.startsWith('lucky-shell-')"));
 });
