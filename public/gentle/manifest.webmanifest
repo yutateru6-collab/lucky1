@@ -1,7 +1,7 @@
 {
   "name": "lucky — 迷ったときの、小さな味方。",
   "short_name": "lucky",
-  "description": "迷ったとき、ちいさな偶然を。決めるのはあなた。きっかけは偶然。",
+  "description": "小さな「やる？やらない？」を、その場で。いつもの毎日を1°だけずらす lucky。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
