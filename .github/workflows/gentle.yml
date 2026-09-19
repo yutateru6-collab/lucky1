@@ -26,6 +26,8 @@ jobs:
           cp tests/gentle/ui_offline_test.py .gentle-test/tests/ui_offline_test.py
           cp -r public/gentle .gentle-test/public
           python .gentle-test/tests/ui_offline_test.py
+      - name: Quick mode starts with zero input and memo comes after the decision
+        run: python tests/gentle/quick_mode_test.py
       - name: Exact public gentle build verification
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: node scripts/verify-gentle-live.mjs
