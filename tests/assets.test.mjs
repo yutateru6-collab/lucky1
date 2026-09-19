@@ -16,14 +16,16 @@ test('HTML has no external third-party scripts or inline handlers', async () => 
   assert.equal(ids.length, new Set(ids).size);
 });
 test('user content is inserted as text, not executable HTML', async () => {
-  const app = await read('public/app.mjs');
-  assert.doesNotMatch(app, /innerHTML|outerHTML|insertAdjacentHTML|eval\(/);
-  assert.doesNotMatch(app, /fetch\(|XMLHttpRequest|sendBeacon|WebSocket/);
+  for (const file of ['public/app.mjs', 'public/quick-mode.mjs']) {
+    const app = await read(file);
+    assert.doesNotMatch(app, /innerHTML|outerHTML|insertAdjacentHTML|eval\(/);
+    assert.doesNotMatch(app, /fetch\(|XMLHttpRequest|sendBeacon|WebSocket/);
+  }
 });
 test('security headers and offline version are present', async () => {
   const headers = await read('public/_headers');
   assert.match(headers, /Content-Security-Policy/);
   assert.match(headers, /camera=\(\), microphone=\(\), geolocation=\(\)/);
   const sw = await read('public/sw.js');
-  assert.match(sw, /lucky-shell-v4\.0\.0/);
+  assert.match(sw, /lucky-shell-v4\.0\.1/);
 });
