@@ -127,11 +127,12 @@ function coinAnimation(outcome, visual, run) {
   const coin = node('div', 'quick-anim-coin');
   coin.append(node('span', 'coin-face coin-front', '表'), node('span', 'coin-face coin-back', '裏'));
   wrap.append(coin); visual.append(wrap);
-  const finalY = outcome.result === 'yes' ? 1440 : 1620;
+  const reduced = reducedMotion();
+  const finalY = outcome.result === 'yes' ? (reduced ? 360 : 1440) : (reduced ? 540 : 1620);
   state.motion = createTimeline({ onComplete: () => finishAnimation(outcome, run) })
-    .add(coin, { y: -30, rotateY: 630, scale: 1.07, duration: 330, ease: 'out(3)' })
-    .add(coin, { y: -7, rotateY: 1120, scale: .98, duration: 310, ease: 'inOut(3)' })
-    .add(coin, { y: 0, rotateY: finalY, scale: 1, duration: 340, ease: 'out(4)' });
+    .add(coin, { y: reduced ? -8 : -30, rotateY: reduced ? 140 : 630, scale: reduced ? 1.02 : 1.07, duration: reduced ? 150 : 330, ease: 'out(3)' })
+    .add(coin, { y: reduced ? -3 : -7, rotateY: reduced ? 250 : 1120, scale: .98, duration: reduced ? 140 : 310, ease: 'inOut(3)' })
+    .add(coin, { y: 0, rotateY: finalY, scale: 1, duration: reduced ? 190 : 340, ease: 'out(4)' });
 }
 function cardsAnimation(outcome, visual, run) {
   const wrap = node('div', 'quick-cards-wrap');
@@ -145,27 +146,32 @@ function cardsAnimation(outcome, visual, run) {
   }
   visual.append(wrap);
   const left = cards[0].card, right = cards[1].card, selected = cards[chosen], otherCard = cards[1-chosen];
+  const reduced = reducedMotion();
+  const cross = reduced ? 26 : 72, settle = reduced ? 7 : 18, center = reduced ? 28 : 48;
+  const t1 = reduced ? 150 : 250, t2 = reduced ? 140 : 240, t3 = reduced ? 130 : 220;
+  const revealAt = reduced ? 350 : 650;
   state.motion = createTimeline({ onComplete: () => finishAnimation(outcome, run) })
-    .add(left, { x: 72, rotate: 12, duration: 250, ease: 'inOut(3)' })
-    .add(right, { x: -72, rotate: -12, duration: 250, ease: 'inOut(3)' }, 0)
-    .add(left, { x: -18, rotate: -14, duration: 240, ease: 'inOut(3)' })
-    .add(right, { x: 18, rotate: 14, duration: 240, ease: 'inOut(3)' }, 250)
-    .add(left, { x: 0, rotate: -9, duration: 220, ease: 'out(3)' })
-    .add(right, { x: 0, rotate: 9, duration: 220, ease: 'out(3)' }, 490)
-    .call(() => { $('#quick-animation-label').textContent = '1枚、オープン！'; }, 650)
-    .add(otherCard.card, { opacity: .28, scale: .92, duration: 220 }, 650)
-    .add(selected.card, { x: chosen === 0 ? 48 : -48, rotate: 0, scale: 1.1, duration: 300, ease: 'out(4)' }, 650)
-    .add(selected.inner, { rotateY: 180, duration: 380, ease: 'inOut(4)' }, 760);
+    .add(left, { x: cross, rotate: reduced ? 5 : 12, duration: t1, ease: 'inOut(3)' })
+    .add(right, { x: -cross, rotate: reduced ? -5 : -12, duration: t1, ease: 'inOut(3)' }, 0)
+    .add(left, { x: -settle, rotate: reduced ? -5 : -14, duration: t2, ease: 'inOut(3)' })
+    .add(right, { x: settle, rotate: reduced ? 5 : 14, duration: t2, ease: 'inOut(3)' }, t1)
+    .add(left, { x: 0, rotate: -9, duration: t3, ease: 'out(3)' })
+    .add(right, { x: 0, rotate: 9, duration: t3, ease: 'out(3)' }, t1 + t2)
+    .call(() => { $('#quick-animation-label').textContent = '1枚、オープン！'; }, revealAt)
+    .add(otherCard.card, { opacity: .28, scale: .92, duration: reduced ? 140 : 220 }, revealAt)
+    .add(selected.card, { x: chosen === 0 ? center : -center, rotate: 0, scale: reduced ? 1.05 : 1.1, duration: reduced ? 190 : 300, ease: 'out(4)' }, revealAt)
+    .add(selected.inner, { rotateY: 180, duration: reduced ? 240 : 380, ease: 'inOut(4)' }, revealAt + (reduced ? 70 : 110));
 }
 function diceAnimation(outcome, visual, run) {
   const die = node('div', 'quick-anim-die', DICE[(outcome.face || 1) - 1]);
   die.dataset.face = String(outcome.face || 1); visual.append(die);
+  const reduced = reducedMotion();
   state.motion = createTimeline({ onComplete: () => finishAnimation(outcome, run) })
-    .add(die, { y: -30, rotate: 110, scale: 1.07, duration: 220, ease: 'out(3)' })
-    .add(die, { y: 4, rotate: 225, scale: .94, duration: 220, ease: 'in(3)' })
-    .add(die, { y: -18, rotate: 330, scale: 1.04, duration: 210, ease: 'out(3)' })
-    .add(die, { y: 2, rotate: 430, scale: .98, duration: 210, ease: 'inOut(3)' })
-    .add(die, { y: 0, rotate: 360, scale: 1, duration: 260, ease: 'out(4)' });
+    .add(die, { y: reduced ? -8 : -30, rotate: reduced ? 55 : 110, scale: reduced ? 1.02 : 1.07, duration: reduced ? 120 : 220, ease: 'out(3)' })
+    .add(die, { y: reduced ? 1 : 4, rotate: reduced ? 120 : 225, scale: reduced ? .98 : .94, duration: reduced ? 110 : 220, ease: 'in(3)' })
+    .add(die, { y: reduced ? -6 : -18, rotate: reduced ? 190 : 330, scale: reduced ? 1.01 : 1.04, duration: reduced ? 110 : 210, ease: 'out(3)' })
+    .add(die, { y: reduced ? 1 : 2, rotate: reduced ? 270 : 430, scale: .98, duration: reduced ? 110 : 210, ease: 'inOut(3)' })
+    .add(die, { y: 0, rotate: 360, scale: 1, duration: reduced ? 150 : 260, ease: 'out(4)' });
 }
 function rpsAnimation(outcome, visual, run) {
   const wrap = node('div', 'quick-rps-wrap');
@@ -175,18 +181,22 @@ function rpsAnimation(outcome, visual, run) {
   lucky.append(node('small', '', 'lucky'), node('span', 'quick-rps-hand', '✊'));
   wrap.append(you, node('b', 'quick-rps-vs', 'VS'), lucky); visual.append(wrap);
   const yourHand = you.querySelector('.quick-rps-hand'), luckyHand = lucky.querySelector('.quick-rps-hand');
+  const reduced = reducedMotion();
+  const hop = reduced ? -6 : -16;
+  const t = reduced ? 130 : 180;
+  const revealAt = reduced ? 390 : 660;
   state.motion = createTimeline({ onComplete: () => finishAnimation(outcome, run) })
-    .add([yourHand,luckyHand], { y: -16, rotate: -8, duration: 180, ease: 'out(3)' })
-    .add([yourHand,luckyHand], { y: 2, rotate: 4, duration: 150, ease: 'in(3)' })
-    .add([yourHand,luckyHand], { y: -14, rotate: -6, duration: 180, ease: 'out(3)' })
-    .add([yourHand,luckyHand], { y: 2, rotate: 3, duration: 150, ease: 'in(3)' })
+    .add([yourHand,luckyHand], { y: hop, rotate: reduced ? -3 : -8, duration: t, ease: 'out(3)' })
+    .add([yourHand,luckyHand], { y: 1, rotate: reduced ? 2 : 4, duration: reduced ? 100 : 150, ease: 'in(3)' })
+    .add([yourHand,luckyHand], { y: reduced ? -5 : -14, rotate: reduced ? -2 : -6, duration: t, ease: 'out(3)' })
+    .add([yourHand,luckyHand], { y: 1, rotate: reduced ? 1 : 3, duration: reduced ? 100 : 150, ease: 'in(3)' })
     .call(() => {
       if (state.animationRun !== run) return;
       yourHand.textContent = HANDS[outcome.hand];
       luckyHand.textContent = HANDS[outcome.opponent];
       $('#quick-animation-label').textContent = 'じゃんけん、ぽん！';
-    }, 660)
-    .add([yourHand,luckyHand], { y: 0, rotate: 0, scale: [0.72,1.18,1], duration: 420, ease: 'out(4)' }, 660);
+    }, revealAt)
+    .add([yourHand,luckyHand], { y: 0, rotate: 0, scale: reduced ? [0.9,1.07,1] : [0.72,1.18,1], duration: reduced ? 260 : 420, ease: 'out(4)' }, revealAt);
 }
 function rouletteAnimation(outcome, visual, run) {
   const wrap = node('div', 'quick-roulette-wrap');
@@ -195,10 +205,11 @@ function rouletteAnimation(outcome, visual, run) {
   const center = node('span', 'quick-roulette-center', String(outcome.slot || 1));
   const stop = -(((outcome.slot || 1) - 0.5) * 45);
   wheel.append(center); wrap.append(pointer, wheel); visual.append(wrap);
+  const reduced = reducedMotion();
   state.motion = createTimeline({ onComplete: () => finishAnimation(outcome, run) })
-    .add(wheel, { rotate: 720, duration: 520, ease: 'in(2)' })
-    .add(wheel, { rotate: 1440 + stop, duration: 900, ease: 'out(5)' })
-    .add(pointer, { scale: [1,1.25,1], duration: 180, ease: 'out(3)' }, 1250);
+    .add(wheel, { rotate: reduced ? 180 : 720, duration: reduced ? 220 : 520, ease: 'in(2)' })
+    .add(wheel, { rotate: (reduced ? 360 : 1440) + stop, duration: reduced ? 390 : 900, ease: 'out(5)' })
+    .add(pointer, { scale: reduced ? [1,1.08,1] : [1,1.25,1], duration: reduced ? 130 : 180, ease: 'out(3)' }, reduced ? 470 : 1250);
 }
 function renderAnimation(outcome, run) {
   const stage = $('#quick-animation-stage');
@@ -208,20 +219,6 @@ function renderAnimation(outcome, run) {
   stage.dataset.phase = 'running';
   stage.hidden = false;
   $('#quick-animation-label').textContent = METHODS[state.method].action;
-  if (reducedMotion()) {
-    if (state.method === 'dice') visual.append(node('div', 'quick-anim-die', DICE[(outcome.face || 1) - 1]));
-    else if (state.method === 'rps') {
-      const wrap = node('div','quick-rps-wrap');
-      wrap.append(node('span','quick-rps-hand',HANDS[outcome.hand]),node('b','quick-rps-vs','VS'),node('span','quick-rps-hand',HANDS[outcome.opponent]));
-      visual.append(wrap);
-    } else if (state.method === 'roulette') {
-      const wrap=node('div','quick-roulette-wrap'), wheel=node('div','quick-roulette-wheel'); wheel.append(node('span','quick-roulette-center',String(outcome.slot||1))); wrap.append(node('span','quick-roulette-pointer','▼'),wheel); visual.append(wrap);
-    } else if (state.method === 'cards') {
-      const card=node('div','quick-static-card',outcome.result==='yes'?'♥':'♠'); visual.append(card);
-    } else visual.append(node('div','quick-static-coin',outcome.result==='yes'?'表':'裏'));
-    state.motion = animate(visual, { scale: [0.92,1], opacity: [0,1], duration: 140, onComplete: () => finishAnimation(outcome, run) });
-    return;
-  }
   if (state.method === 'coin') coinAnimation(outcome, visual, run);
   if (state.method === 'cards') cardsAnimation(outcome, visual, run);
   if (state.method === 'dice') diceAnimation(outcome, visual, run);

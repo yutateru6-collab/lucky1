@@ -75,7 +75,31 @@ try:
     page.evaluate('navigator.serviceWorker.ready');page.wait_for_function('navigator.serviceWorker.controller!==null')
     ctx.set_offline(True);page.reload(wait_until='domcontentloaded')
     expect(page.locator('#quick-start-home')).to_be_visible()
-    ctx.close();browser.close()
+    ctx.close()
+
+    # iPhone Reduce Motion still gets a shorter, recognizably method-specific animation.
+    reduce_ctx=browser.new_context(viewport={'width':390,'height':844},locale='ja-JP',timezone_id='Asia/Tokyo',reduced_motion='reduce')
+    reduce_page=reduce_ctx.new_page()
+    reduce_page.add_init_script("Object.defineProperty(Crypto.prototype,'getRandomValues',{value(a){a[0]=0;return a;}})")
+    reduce_page.goto('http://127.0.0.1:4173',wait_until='networkidle')
+    moving={
+      'coin':'.quick-anim-coin',
+      'cards':'.quick-anim-card:first-child',
+      'dice':'.quick-anim-die',
+      'rps':'.quick-rps-player:first-child .quick-rps-hand',
+      'roulette':'.quick-roulette-wheel'
+    }
+    for method,selector in moving.items():
+      reduce_page.locator('#quick-start-home').click()
+      reduce_page.locator(f'[data-quick-method="{method}"]').click()
+      reduce_page.locator('#quick-draw').click()
+      expect(reduce_page.locator(selector)).to_be_visible()
+      t1=reduce_page.locator(selector).evaluate("el=>getComputedStyle(el).transform")
+      reduce_page.wait_for_timeout(90)
+      t2=reduce_page.locator(selector).evaluate("el=>getComputedStyle(el).transform")
+      assert t1!=t2, f"Reduce Motion animation is static for {method}"
+      reduce_page.locator('#quick-close').click()
+    reduce_ctx.close();browser.close()
 finally:
   server.terminate();server.wait(timeout=5)
-print(json.dumps({'passed':True,'checks':['root UI keeps primary CTA','five methods remain selectable','Anime.js changes transforms over time for every method','coin flip stage renders','card shuffle stage renders','dice roll stage renders','rps battle stage renders','roulette spin stage renders','result appears only after animation','repeated/closed animation cannot create a record','selected method is saved only with optional memo','last method is remembered','quick mode works offline']},ensure_ascii=False))
+print(json.dumps({'passed':True,'checks':['root UI keeps primary CTA','five methods remain selectable','Anime.js changes transforms over time for every method','Reduce Motion keeps all five animations visibly moving','coin flip stage renders','card shuffle stage renders','dice roll stage renders','rps battle stage renders','roulette spin stage renders','result appears only after animation','repeated/closed animation cannot create a record','selected method is saved only with optional memo','last method is remembered','quick mode works offline']},ensure_ascii=False))
