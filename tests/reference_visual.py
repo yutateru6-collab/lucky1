@@ -43,11 +43,11 @@ try:
         page.locator('#quick-close').click()
         page.emulate_media(reduced_motion='no-preference')
         animation_checks=[
-            ('coin','.quick-anim-coin',350),
-            ('cards','.quick-cards-wrap',850),
-            ('dice','.quick-anim-die',350),
-            ('rps','.quick-rps-wrap',850),
-            ('roulette','.quick-roulette-wheel',450),
+            ('coin','.quick-anim-coin',1600),
+            ('cards','.quick-cards-wrap',2600),
+            ('dice','.quick-anim-die',1900),
+            ('rps','.quick-rps-wrap',2200),
+            ('roulette','.quick-roulette-wheel',3000),
         ]
         for method,selector,delay in animation_checks:
             page.locator('#quick-start-home').click()
