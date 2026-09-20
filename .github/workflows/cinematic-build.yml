@@ -24,23 +24,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
       - name: Install Blender and Japanese glyph support
-        run: sudo apt-get update -qq && sudo apt-get install -y blender python3-numpy fonts-noto-cjk
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq blender python3-numpy fonts-noto-cjk > /tmp/lucky-apt.log 2>&1
       - name: Build original asset and local renderer
         run: |
-          npm ci --prefix scripts/reveal --no-audit --no-fund
-          env -u LD_LIBRARY_PATH -u PYTHONPATH -u PYTHONHOME blender --background --threads 2 --python-exit-code 1 --python scripts/reveal/make_coin.py
-          test -s public/reveal/lucky-coin.glb
-          NODE_PATH="$PWD/scripts/reveal/node_modules" scripts/reveal/node_modules/.bin/esbuild src/reveal/cinematic.mjs --bundle --format=esm --minify --target=es2022 --outfile=public/reveal/cinematic.mjs --legal-comments=external
-          cp scripts/reveal/node_modules/three/LICENSE public/reveal/THIRD_PARTY_LICENSES.txt
-          python scripts/reveal/integrate.py
-          node --check public/quick-mode.mjs
-          node --check public/reveal/cinematic.mjs
-          npm run check
-          npm run build
+          set -o pipefail
+          mkdir -p cinematic-review
+          {
+            npm ci --prefix scripts/reveal --no-audit --no-fund
+            env -u LD_LIBRARY_PATH -u PYTHONPATH -u PYTHONHOME PATH=/usr/bin:/bin /usr/bin/blender --background --threads 2 --python-exit-code 1 --python scripts/reveal/make_coin.py
+            test -s public/reveal/lucky-coin.glb
+            NODE_PATH="$PWD/scripts/reveal/node_modules" scripts/reveal/node_modules/.bin/esbuild src/reveal/cinematic.mjs --bundle --format=esm --minify --target=es2022 --outfile=public/reveal/cinematic.mjs --legal-comments=external
+            cp scripts/reveal/node_modules/three/LICENSE public/reveal/THIRD_PARTY_LICENSES.txt
+            /usr/bin/python3 scripts/reveal/integrate.py
+            node --check public/quick-mode.mjs
+            node --check public/reveal/cinematic.mjs
+            npm run check
+            npm run build
+          } 2>&1 | tee cinematic-review/build.log
       - name: Commit only generated assets and scoped integration to this feature branch
         run: |
           git config user.name 'github-actions[bot]'
@@ -50,6 +51,9 @@ jobs:
             git commit -m 'build: ship original Blender coin and cinematic card/coin renderer'
             git push origin HEAD:${{ github.ref_name }}
           fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - run: pip install playwright==1.57.0
       - run: python -m playwright install --with-deps chromium
       - name: Record actual 17-second opening and 15.5-second coin settling
