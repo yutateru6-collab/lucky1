@@ -38,7 +38,6 @@ try:
       expect(page.locator(visual)).to_be_visible()
       assert page.locator('#quick-result').is_hidden()
       assert page.locator(f'[data-quick-method="{method}"]').is_disabled()
-      expect(page.locator('#quick-result-title')).to_have_text('やってみる!', timeout=4000) if False else None
       expect(page.locator('#quick-result-title')).to_have_text('やってみる！', timeout=4000)
       expect(page.locator('#quick-result-method')).to_have_text(label)
       assert page.evaluate("localStorage.getItem('lucky.records.v2')") is None
