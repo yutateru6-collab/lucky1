@@ -68,3 +68,35 @@
   .quick-anim-coin,.quick-anim-card,.quick-anim-die,.quick-rps-hand,.quick-roulette-wheel{animation-duration:.12s!important;animation-delay:0s!important}
   .quick-card-inner,.quick-anim-card{transition-duration:.08s!important}
 }
+
+/* 4.0.4 visual priority: keep the approved layout, brighten only Quick Choice and make it the home primary. */
+.home-greeting #home-start{background:#ffffffc9;color:#b93270;border:1.5px solid #f5a0c4;box-shadow:0 2px 7px #c94b8512;min-height:44px;font-size:clamp(14px,3.5vw,23px);text-shadow:none}
+.home-greeting #home-start .icon{stroke:#b93270}
+.home-greeting #quick-start-home{width:59%;min-height:52px;margin-top:7px;padding:9px 12px;border:2px solid #ff96c5;background:linear-gradient(150deg,#ff78b9,#ff3091 82%);color:#fff;font-size:clamp(15px,3.85vw,26px);font-weight:900;box-shadow:inset 0 0 0 2px #ffffff35,0 6px 13px #ff65a43b}
+.home-greeting #quick-start-home .quick-bolt{color:#ffe05b;filter:drop-shadow(0 1px 0 #9c3664)}
+.home-greeting #quick-start-home small{color:#fff;opacity:.9;font-size:.7em;font-weight:800}
+
+/* Quick mode stays bright even when the rest of the app follows a dark system theme. */
+.quick-dialog{--quick-ink:#14265a;--quick-muted:#69769a;--quick-line:#e6e8f2;background-color:#fffafd;background-image:linear-gradient(180deg,#fffefd 0%,#fff7fb 58%,#f4fbff 100%);color:var(--quick-ink);box-shadow:0 18px 70px #4d568b2b}
+.quick-dialog::backdrop{background:rgba(83,98,151,.17);backdrop-filter:blur(5px) saturate(1.04)}
+.quick-dialog .quick-sheet{background:transparent;color:var(--quick-ink)}
+.quick-dialog .quick-head h2,.quick-dialog .quick-method-label>span,.quick-dialog .quick-memo-panel h4,.quick-dialog .quick-memo-panel label{color:var(--quick-ink)}
+.quick-dialog .quick-head p,.quick-dialog .quick-idle-note,.quick-dialog .quick-safety,.quick-dialog .quick-result-detail,.quick-dialog .quick-memo-panel>p{color:var(--quick-muted)!important}
+.quick-dialog .icon-button{background:#fff;color:#5b68a4;border:2px solid #eadcff;box-shadow:0 2px 7px #6e72a712}
+.quick-dialog .quick-method-picker button{background:#fff;border-color:#e1e6f2;color:var(--quick-ink);box-shadow:0 2px 7px #65719b10}
+.quick-dialog .quick-method-picker button[aria-pressed=true]{background:#fff0f6;border-color:#f58ab8;color:#ac2e65;box-shadow:inset 0 0 0 1px #f58ab8,0 4px 10px #e9669c20}
+.quick-dialog .quick-choice-row button{background:#fff;color:var(--quick-ink);border-color:var(--quick-line)}
+.quick-dialog .quick-choice-row button[aria-pressed=true]{background:#fff0f6;border-color:#f388b5}
+.quick-dialog .quick-memo-panel textarea{background:#fff;color:var(--quick-ink);border-color:#e2e7f2}
+.quick-dialog .quick-result-method{color:#a14d75!important}
+.quick-dialog .quick-animation-label{color:#a14d75!important}
+.quick-dialog .quick-concept-line{background:#f3fbff!important;border-color:#d8eef8;color:#385b72!important}
+
+/* Explicitly override previous dark-theme quick modal rules. */
+:root[data-theme="dark"] .quick-dialog{background-color:#fffafd!important;background-image:linear-gradient(180deg,#fffefd 0%,#fff7fb 58%,#f4fbff 100%)!important;color:#14265a!important}
+:root[data-theme="dark"] .quick-dialog .quick-sheet,:root[data-theme="dark"] .quick-dialog .quick-head h2,:root[data-theme="dark"] .quick-dialog .quick-method-label>span,:root[data-theme="dark"] .quick-dialog .quick-memo-panel h4,:root[data-theme="dark"] .quick-dialog .quick-memo-panel label{color:#14265a!important}
+:root[data-theme="dark"] .quick-dialog .quick-head p,:root[data-theme="dark"] .quick-dialog .quick-idle-note,:root[data-theme="dark"] .quick-dialog .quick-safety,:root[data-theme="dark"] .quick-dialog .quick-result-detail,:root[data-theme="dark"] .quick-dialog .quick-memo-panel>p{color:#69769a!important}
+:root[data-theme="dark"] .quick-dialog .quick-method-picker button,:root[data-theme="dark"] .quick-dialog .quick-choice-row button,:root[data-theme="dark"] .quick-dialog .quick-memo-panel textarea{background:#fff!important;color:#14265a!important;border-color:#e1e6f2!important}
+:root[data-theme="dark"] .quick-dialog .quick-method-picker button[aria-pressed=true],:root[data-theme="dark"] .quick-dialog .quick-choice-row button[aria-pressed=true]{background:#fff0f6!important;color:#ac2e65!important;border-color:#f58ab8!important}
+:root[data-theme="dark"] .quick-dialog .quick-concept-line{background:#f3fbff!important;border-color:#d8eef8!important;color:#385b72!important}
+:root[data-theme="dark"] .quick-dialog .quick-result-method,:root[data-theme="dark"] .quick-dialog .quick-animation-label{color:#a14d75!important}
