@@ -1,0 +1,97 @@
+name: Reveal reference research (no deployment)
+on:
+  push:
+    branches: ['research/reveal-references-20260921']
+    paths: ['.github/workflows/reveal-reference-research.yml']
+permissions:
+  contents: read
+jobs:
+  references:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.57.0 requests beautifulsoup4
+      - run: python -m playwright install --with-deps chromium
+      - name: Observe public sites and their publicly embedded demonstrations
+        run: |
+          mkdir -p research-evidence
+          cat > /tmp/observe.py <<'PY'
+          import json,time,hashlib,re,subprocess
+          from pathlib import Path
+          from urllib.parse import urljoin,urlparse
+          import requests
+          from bs4 import BeautifulSoup
+          from playwright.sync_api import sync_playwright
+          OUT=Path('research-evidence'); report={}
+          sites={
+            'pokemon-card':'https://www.pokemontcgpocket.com/ja/howtoplay/card/',
+            'pokemon-about':'https://www.pokemontcgpocket.com/ja/about/',
+            'tiny-decisions':'https://tinydecisions.app/en',
+            'pcalc-dice':'https://pcalc.com/dice/index.html',
+            'wheel-of-names':'https://wheelofnames.com/',
+            'picker-wheel':'https://pickerwheel.com/'
+          }
+          with sync_playwright() as p:
+            browser=p.chromium.launch(headless=True)
+            for name,url in sites.items():
+              row={'url':url,'errors':[],'media':[]};report[name]=row
+              ctx=browser.new_context(viewport={'width':1100,'height':850},locale='en-US',record_video_dir=str(OUT/name/'videos'),record_video_size={'width':1000,'height':773})
+              page=ctx.new_page(); page.on('pageerror',lambda e,r=row:r['errors'].append(str(e)))
+              try:
+                response=page.goto(url,wait_until='domcontentloaded',timeout=35000)
+                row['status']=response.status if response else None
+                page.wait_for_timeout(3500)
+                row['title']=page.title(); html=page.content()
+                (OUT/name).mkdir(parents=True,exist_ok=True)
+                (OUT/name/'page.html').write_text(html)
+                (OUT/name/'text.txt').write_text(page.locator('body').inner_text()[:22000])
+                page.screenshot(path=str(OUT/name/'initial.png'),full_page=True)
+                soup=BeautifulSoup(html,'html.parser')
+                row['media']=page.locator('video,video source,iframe').evaluate_all('(els)=>els.map(e=>({tag:e.tagName,src:e.currentSrc||e.src||e.getAttribute("data-src"),poster:e.poster||null}))')
+                row['links']=[{'text':a.get_text(' ',strip=True)[:80],'url':urljoin(url,a['href'])} for a in soup.select('a[href]') if any(k in a['href'] for k in ['youtu','vimeo','apps.apple','mp4'])][:30]
+                sources=set()
+                for item in row['media']:
+                  if item.get('src'): sources.add(urljoin(url,item['src']))
+                for tag in soup.find_all(['source','video']):
+                  for attr in ['src','data-src']:
+                    if tag.get(attr):sources.add(urljoin(url,tag[attr]))
+                clips=[]
+                for src in sorted(sources):
+                  if not re.search(r'\.(mp4|webm)(\?|$)',src):continue
+                  if len(clips)>=3:break
+                  try:
+                    r=requests.get(src,timeout=25);r.raise_for_status()
+                    if len(r.content)>30000000:continue
+                    dest=OUT/name/('demo-'+str(len(clips))+'.mp4');dest.write_bytes(r.content)
+                    clips.append({'url':src,'path':str(dest),'bytes':len(r.content),'sha256':hashlib.sha256(r.content).hexdigest()})
+                  except Exception as e:row['errors'].append('media '+str(e)[:220])
+                row['clips']=clips
+                if name in ['wheel-of-names','picker-wheel']:
+                  # Public free demo only. No account, purchase, or saved data.
+                  row['buttons']=page.locator('button').all_text_contents()[:80]
+                  row['canvases']=page.locator('canvas').count()
+                  if name=='wheel-of-names' and row['canvases']:
+                    can=page.locator('canvas').first
+                    box=can.bounding_box();row['wheelBox']=box
+                    if box:
+                      page.mouse.click(box['x']+box['width']/2,box['y']+box['height']/2)
+                      for i,ms in enumerate([450,1700,2700,5000]):
+                        page.wait_for_timeout(ms);page.screenshot(path=str(OUT/name/('spin-'+str(i)+'.png')))
+                for i in range(2):
+                  page.mouse.wheel(0,650);page.wait_for_timeout(600);page.screenshot(path=str(OUT/name/('section-'+str(i)+'.png')))
+              except Exception as e:row['errors'].append(str(e)[:500])
+              finally:
+                ctx.close();(OUT/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+            browser.close()
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          PY
+          python /tmp/observe.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reveal-public-reference-evidence
+          path: research-evidence/
+          retention-days: 7
