@@ -1,0 +1,38 @@
+name: Public Safari motion proof
+on:
+  pull_request:
+    paths:
+      - 'tests/public_animation_test.py'
+      - '.github/workflows/public-animation.yml'
+      - 'public/quick-mode.mjs'
+      - 'public/quick-mode.css'
+      - 'public/vendor/**'
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'tests/public_animation_test.py'
+      - '.github/workflows/public-animation.yml'
+permissions:
+  contents: read
+jobs:
+  public-motion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.57.0
+      - run: python -m playwright install --with-deps chromium webkit
+      - name: Verify actual public URL motion in Chromium and WebKit
+        env:
+          LUCKY_PUBLIC_URL: https://lucky1.itisnowornever271.workers.dev/
+        run: python tests/public_animation_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lucky-public-animation-frames
+          path: public-animation-results/
+          retention-days: 7
