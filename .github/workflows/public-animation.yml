@@ -1,48 +1,49 @@
 name: Public Safari motion proof
 on:
   pull_request:
-    paths:
-      - 'tests/public_animation_test.py'
-      - '.github/workflows/public-animation.yml'
-      - 'public/quick-mode.mjs'
-      - 'public/quick-mode.css'
-      - 'public/vendor/**'
+    paths: ['public/**', 'tests/**', '.github/workflows/public-animation.yml']
   push:
     branches: [main]
-    paths:
-      - 'public/**'
-      - 'tests/public_animation_test.py'
-      - '.github/workflows/public-animation.yml'
+    paths: ['public/**', 'tests/**', '.github/workflows/public-animation.yml']
 permissions:
   contents: read
 jobs:
   public-motion:
+    name: ${{ matrix.browser }} / ${{ matrix.motion }} / full duration
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+        motion: [no-preference, reduce]
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: pip install playwright==1.57.0
-      - run: python -m playwright install --with-deps chromium webkit
-      - name: Verify current public URL motion on pull requests
+      - run: python -m playwright install --with-deps ${{ matrix.browser }}
+      - run: sudo apt-get update -qq && sudo apt-get install -y fonts-noto-cjk
+      - name: PR code - manual picks, full real-time motion, rendered frames and final results
         if: github.event_name == 'pull_request'
         env:
-          LUCKY_PUBLIC_URL: https://lucky1.itisnowornever271.workers.dev/
-          REQUIRE_REDUCED_MOTION: '0'
+          MOTION_BROWSER: ${{ matrix.browser }}
+          MOTION_PREF: ${{ matrix.motion }}
         run: python tests/public_animation_test.py
-      - name: Verify deployed main in Chromium and WebKit, including Reduce Motion
+      - name: Actual public root URL - verify deployed hashes and the complete interaction
         if: github.event_name == 'push'
         env:
           LUCKY_PUBLIC_URL: https://lucky1.itisnowornever271.workers.dev/
-          EXPECTED_VERSION: source
-          REQUIRE_REDUCED_MOTION: '1'
-          REQUIRE_SUSPENSE: '1'
+          MOTION_BROWSER: ${{ matrix.browser }}
+          MOTION_PREF: ${{ matrix.motion }}
         run: python tests/public_animation_test.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: lucky-public-animation-frames
+          name: lucky-full-motion-${{ matrix.browser }}-${{ matrix.motion }}
           path: public-animation-results/
           retention-days: 7
