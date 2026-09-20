@@ -18,11 +18,12 @@ METHODS={
 }
 EXPECTED=os.environ.get('EXPECTED_VERSION','').strip()
 STRICT_REDUCED=os.environ.get('REQUIRE_REDUCED_MOTION','0')=='1'
+REQUIRE_SUSPENSE=os.environ.get('REQUIRE_SUSPENSE','0')=='1'
 if EXPECTED=='source':
   source=(pathlib.Path('public')/'index.html').read_text()
   m=re.search(r'lucky-version\" content=\"([^\"]+)',source)
   EXPECTED=m.group(1) if m else ''
-report={'url':URL,'expectedVersion':EXPECTED or None,'strictReducedMotion':STRICT_REDUCED,'browsers':{},'passed':True}
+report={'url':URL,'expectedVersion':EXPECTED or None,'strictReducedMotion':STRICT_REDUCED,'requireSuspense':REQUIRE_SUSPENSE,'browsers':{},'passed':True}
 
 def digest(data): return hashlib.sha256(data).hexdigest()
 
@@ -75,6 +76,9 @@ with sync_playwright() as p:
           assert page.locator(selector).count()==1, f'{browser_name}/{reduced}/{method}: motion element missing'
           assert transform1!=transform2, f'{browser_name}/{reduced}/{method}: transform did not change'
           assert changed, f'{browser_name}/{reduced}/{method}: rendered frames identical'
+        if REQUIRE_SUSPENSE and reduced=='no-preference':
+          page.wait_for_timeout(1250)
+          assert page.locator('#quick-result').is_hidden(), f'{browser_name}/{method}: public result revealed before suspense window'
         mode_report['methods'][method]={
           'frameChanged':changed,
           'transform1':transform1,

@@ -38,6 +38,7 @@ jobs:
           LUCKY_PUBLIC_URL: https://lucky1.itisnowornever271.workers.dev/
           EXPECTED_VERSION: source
           REQUIRE_REDUCED_MOTION: '1'
+          REQUIRE_SUSPENSE: '1'
         run: python tests/public_animation_test.py
       - uses: actions/upload-artifact@v4
         if: always()
