@@ -33,7 +33,7 @@ try:
         page.add_init_script("window.draws=0; Object.defineProperty(crypto,'getRandomValues',{value:a=>{window.draws++;a[0]=1;return a}});")
         page.goto('http://127.0.0.1:4173')
         page.wait_for_selector('#home-methods .art-coin')
-        check('version is 4.0.8', page.locator('meta[name="lucky-version"]').get_attribute('content')=='4.0.8')
+        check('version is 4.0.9', page.locator('meta[name="lucky-version"]').get_attribute('content')=='4.0.9')
         check('both instant and detailed choices remain visible', page.locator('#home-start').is_visible() and page.locator('#quick-start-home').is_visible())
         quick_box=page.locator('#quick-start-home').bounding_box(); detail_box=page.locator('#home-start').bounding_box()
         check('instant no-input choice is the more prominent home action', quick_box['height']>detail_box['height'] and '入力なし' in page.locator('#quick-start-home').inner_text())
@@ -43,8 +43,8 @@ try:
         page.locator('#quick-close').click()
         page.emulate_media(reduced_motion='no-preference')
         animation_checks=[
-            ('coin','.quick-anim-coin',1600),
-            ('cards','.quick-cards-wrap',2600),
+            ('coin','.cinematic-canvas',4500),
+            ('cards','.cinematic-canvas',11000),
             ('dice','.quick-anim-die',1900),
             ('rps','.quick-rps-wrap',2200),
             ('roulette','.quick-roulette-wheel',3000),

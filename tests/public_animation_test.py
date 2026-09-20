@@ -20,7 +20,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 const [base, version, out] = process.argv.slice(1);
 if (base !== 'https://lucky1.itisnowornever271.workers.dev/') throw new Error('Expected the approved canonical root URL');
-const paths = ['index.html','app.mjs','quick-mode.mjs','quick-draw.mjs','quick-motion.mjs','quick-mode.css','quick-choice.css','styles.css','vendor/anime.esm.min.js','sw.js'];
+const paths = ['index.html','app.mjs','quick-mode.mjs','quick-draw.mjs','quick-motion.mjs','quick-mode.css','quick-choice.css', 'reveal/cinematic.mjs', 'reveal/cinematic.css', 'reveal/lucky-coin.glb', 'reveal/THIRD_PARTY_LICENSES.txt','styles.css','vendor/anime.esm.min.js','sw.js'];
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const expected = Object.fromEntries(await Promise.all(paths.map(async path => [path, hash(await readFile(`public/${path}`))])));
 let report;

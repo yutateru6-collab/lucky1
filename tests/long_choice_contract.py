@@ -119,7 +119,7 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                 shot(page,path=str(out/f'{method}-after-6s.png'))
                 wait_elapsed(page,DURATIONS[method]-1600)
                 assert page.locator('#quick-result').is_hidden(),f'{method}: result arrived before target'
-                if method=='cards':assert page.locator('.quick-card-front').all_text_contents()==['','']
+                if method=='cards':assert page.locator('#quick-animation-stage').get_attribute('data-selected-card')==('0' if pick=='left' else '1')
                 shot(page,path=str(out/f'{method}-before-reveal.png'))
                 # Inspect the final physical pose while it is still rendered. Reading
                 # getComputedStyle after #quick-idle is display:none yields 'none',
@@ -128,6 +128,9 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                 assert page.locator('#quick-result').is_hidden()
                 assert page.locator('.quick-animation-visual').is_visible()
                 pose=page.evaluate('''method=>{
+                  // CINEMATIC_409: inspect the renderer's real object orientation, not a hidden CSS surrogate.
+                  const stage=document.querySelector('#quick-animation-stage');
+                  if(stage.dataset.renderer==='webgl')return {renderer:'webgl',...JSON.parse(stage.dataset.pose),landed:stage.dataset.landed,result:stage.dataset.visibleResult,selectedCard:stage.dataset.selectedCard};
                   const read=selector=>{const e=document.querySelector(selector);const t=getComputedStyle(e).transform;return {e,t,m:new DOMMatrixReadOnly(t)}};
                   if(method==='roulette'){const {e,t,m}=read('.quick-roulette-wheel');return {transform:t,slot:Number(e.dataset.slot),angle:Math.atan2(m.b,m.a)*180/Math.PI};}
                   if(method==='coin'){const {e,t,m}=read('.quick-anim-coin');return {transform:t,landed:e.dataset.landed,frontNormalZ:m.m33};}
@@ -142,17 +145,18 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                 text=page.locator('#quick-result-title').inner_text();detail=page.locator('#quick-result-detail').inner_text()
                 assert text in ['やってみる！','今回はやらない'];case.update(result=text,detail=detail)
                 if method=='coin':
-                    landed=page.locator('.quick-anim-coin').get_attribute('data-landed')
-                    assert pose['landed']==landed
-                    assert pose['transform']!='none'
-                    assert (pose['frontNormalZ']>.99 if landed=='heads' else pose['frontNormalZ']<-.99),pose
+                    landed=page.locator('#quick-animation-stage').get_attribute('data-landed')
+                    assert pose['renderer']=='webgl' and pose['landed']==landed
+                    assert pose['normal'][1]>.99,pose
                     assert (text=='やってみる！')==(pick==landed)
                     assert ('選んだ面：'+('表' if pick=='heads' else '裏')) in detail
-                    assert page.locator('#quick-result-icon').inner_text()==('表' if landed=='heads' else '裏')
+                    assert page.locator('.cinematic-canvas').is_visible()
                 elif method=='cards':
-                    assert page.locator('.quick-anim-card.chosen').get_attribute('data-revealed')==('yes' if text=='やってみる！' else 'no')
-                    assert pose['frontNormalZ']<-.99 and pose['revealed']==('yes' if text=='やってみる！' else 'no'),pose
+                    assert pose['renderer']=='webgl' and abs(pose['rotationY']-3.141592653589793)<.01,pose
+                    assert pose['selectedCard']==('0' if pick=='left' else '1')
+                    assert pose['result']==('yes' if text=='やってみる！' else 'no')
                     assert ('選んだカード：'+('左' if pick=='left' else '右')) in detail
+                    assert page.locator('.cinematic-canvas').is_visible()
                 elif method=='dice':
                     face=int(page.locator('.quick-anim-die').get_attribute('data-face'))
                     assert pose['face']==face and pose['front']['face']==face and pose['front']['z']>.99,pose
