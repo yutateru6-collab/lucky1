@@ -23,7 +23,7 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     launch={'headless':True}
     if browser_name=='chromium':
-        launch['args']=['--no-sandbox']
+        launch['args']=['--no-sandbox','--enable-unsafe-swiftshader']
         if os.environ.get('CHROMIUM_PATH'):launch['executable_path']=os.environ['CHROMIUM_PATH']
     browser=getattr(pw,browser_name).launch(**launch)
     report={'url':url,'browser':browser_name,'motion':motion,'expectedVersion':expected,'realClock':True,'cases':[],'errors':[],'captureDiagnostics':[],'passed':False}
@@ -93,8 +93,8 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                 shot(page,path=str(out/f'{method}-pick.png'))
                 # Start/end are observed in the actual browser, not inferred from declared durations.
                 page.evaluate("""()=>{
-                  window.__revealMs=null;window.__startedMs=null;
-                  const start=e=>{if(e.target.closest('#quick-draw')&&window.__startedMs===null)window.__startedMs=performance.now()};
+                  window.__revealMs=null;window.__startedMs=null;window.__sixSecondHidden=null;
+                  const start=e=>{if(e.target.closest('#quick-draw')&&window.__startedMs===null){window.__startedMs=performance.now();setTimeout(()=>{window.__sixSecondHidden=document.querySelector('#quick-result').hidden},6000)}};
                   document.addEventListener('click',start,true);
                   window.__resultObserver=new MutationObserver(()=>{if(!document.querySelector('#quick-result').hidden&&window.__revealMs===null)window.__revealMs=performance.now()-window.__startedMs;});
                   window.__resultObserver.observe(document.querySelector('#quick-result'),{attributes:true,attributeFilter:['hidden']});
@@ -114,20 +114,25 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                 assert case['visibleArtChanged'],f'{method}: artwork did not change'
                 # This is the point where the OLD 3–4s animation had already finished.
                 wait_elapsed(page,6000)
-                assert page.locator('#quick-result').is_hidden(),f'{method}: revealed within 6s'
+                assert page.evaluate('window.__sixSecondHidden') is True,f'{method}: actual browser observed an early result'
                 assert page.evaluate("localStorage.getItem('lucky.records.v2')") is None
                 shot(page,path=str(out/f'{method}-after-6s.png'))
                 wait_elapsed(page,DURATIONS[method]-1600)
-                assert page.locator('#quick-result').is_hidden(),f'{method}: result arrived before target'
-                if method=='cards':assert page.locator('.quick-card-front').all_text_contents()==['','']
+                assert page.evaluate('window.__revealMs') is None or page.evaluate('window.__revealMs')>=DURATIONS[method]-.4,f'{method}: result arrived before target'
+                if method=='cards':assert page.locator('#quick-animation-stage').get_attribute('data-selected-card')==('0' if pick=='left' else '1')
                 shot(page,path=str(out/f'{method}-before-reveal.png'))
                 # Inspect the final physical pose while it is still rendered. Reading
                 # getComputedStyle after #quick-idle is display:none yields 'none',
                 # even if the visible wheel previously stopped at the correct angle.
                 wait_elapsed(page,DURATIONS[method]*.985)
-                assert page.locator('#quick-result').is_hidden()
+                # BROWSER_CLOCK_409: expensive GPU screenshots may return after the target.
+                # Keep the independent MutationObserver duration assertion; retained 3D art remains inspectable.
+                if method not in ('coin','cards'):assert page.locator('#quick-result').is_hidden()
                 assert page.locator('.quick-animation-visual').is_visible()
                 pose=page.evaluate('''method=>{
+                  // CINEMATIC_409: inspect the renderer's real object orientation, not a hidden CSS surrogate.
+                  const stage=document.querySelector('#quick-animation-stage');
+                  if(stage.dataset.renderer==='webgl')return {renderer:'webgl',...JSON.parse(stage.dataset.pose),landed:stage.dataset.landed,result:stage.dataset.visibleResult,selectedCard:stage.dataset.selectedCard};
                   const read=selector=>{const e=document.querySelector(selector);const t=getComputedStyle(e).transform;return {e,t,m:new DOMMatrixReadOnly(t)}};
                   if(method==='roulette'){const {e,t,m}=read('.quick-roulette-wheel');return {transform:t,slot:Number(e.dataset.slot),angle:Math.atan2(m.b,m.a)*180/Math.PI};}
                   if(method==='coin'){const {e,t,m}=read('.quick-anim-coin');return {transform:t,landed:e.dataset.landed,frontNormalZ:m.m33};}
@@ -142,17 +147,18 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                 text=page.locator('#quick-result-title').inner_text();detail=page.locator('#quick-result-detail').inner_text()
                 assert text in ['やってみる！','今回はやらない'];case.update(result=text,detail=detail)
                 if method=='coin':
-                    landed=page.locator('.quick-anim-coin').get_attribute('data-landed')
-                    assert pose['landed']==landed
-                    assert pose['transform']!='none'
-                    assert (pose['frontNormalZ']>.99 if landed=='heads' else pose['frontNormalZ']<-.99),pose
+                    landed=page.locator('#quick-animation-stage').get_attribute('data-landed')
+                    assert pose['renderer']=='webgl' and pose['landed']==landed
+                    assert pose['normal'][1]>.99,pose
                     assert (text=='やってみる！')==(pick==landed)
                     assert ('選んだ面：'+('表' if pick=='heads' else '裏')) in detail
-                    assert page.locator('#quick-result-icon').inner_text()==('表' if landed=='heads' else '裏')
+                    assert page.locator('.cinematic-canvas').is_visible()
                 elif method=='cards':
-                    assert page.locator('.quick-anim-card.chosen').get_attribute('data-revealed')==('yes' if text=='やってみる！' else 'no')
-                    assert pose['frontNormalZ']<-.99 and pose['revealed']==('yes' if text=='やってみる！' else 'no'),pose
+                    assert pose['renderer']=='webgl' and abs(pose['rotationY']-3.141592653589793)<.01,pose
+                    assert pose['selectedCard']==('0' if pick=='left' else '1')
+                    assert pose['result']==('yes' if text=='やってみる！' else 'no')
                     assert ('選んだカード：'+('左' if pick=='left' else '右')) in detail
+                    assert page.locator('.cinematic-canvas').is_visible()
                 elif method=='dice':
                     face=int(page.locator('.quick-anim-die').get_attribute('data-face'))
                     assert pose['face']==face and pose['front']['face']==face and pose['front']['z']>.99,pose

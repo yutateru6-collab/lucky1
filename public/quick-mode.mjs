@@ -1,3 +1,4 @@
+import { prepareReveal, startCinematicMotion, setRevealSound } from './reveal/cinematic.mjs';
 import { putEntry, dateKey } from './journal.mjs';
 import { QUICK_METHODS as METHODS, QUICK_DURATIONS, COIN_SIDES, hasQuickPick, drawQuick } from './quick-draw.mjs';
 import { startQuickMotion } from './quick-motion.mjs';
@@ -14,7 +15,7 @@ const pickText = () => state.method === 'coin' ? `選んだ面：${COIN_SIDES[st
 function error(text = '') { $('#quick-error').textContent = text; $('#quick-error').hidden = !text; }
 function cancelMotion() { state.run++; state.motion?.cancel(); state.motion = null; }
 function lock() {
-  const busy = state.phase === 'animating';
+  const busy = state.phase === 'animating' || state.phase === 'loading';
   document.querySelectorAll('[data-quick-method], [data-quick-pick]').forEach(b => b.disabled = busy);
   $('#quick-draw').disabled = busy || !hasQuickPick(state.method, state.pick);
   $('#quick-dialog').setAttribute('aria-busy', String(busy));
@@ -46,6 +47,7 @@ function selection() {
   updateDraw();
 }
 function updateDraw() {
+  $('#quick-sound').hidden = !['coin','cards'].includes(state.method);
   const ready = hasQuickPick(state.method, state.pick);
   $('#quick-draw-icon').textContent = METHODS[state.method].icon;
   $('#quick-draw-label').textContent = ready ? (state.method === 'coin' ? `${COIN_SIDES[state.pick]}でいく！` : state.method === 'cards' ? `${state.pick === 'left' ? '左' : '右'}を引く！` : '決める') : 'まず選んでね';
@@ -55,7 +57,7 @@ function updateDraw() {
   lock();
 }
 function setMethod(method) {
-  if (state.phase === 'animating' || !Object.hasOwn(METHODS, method)) return;
+  if (['animating','loading'].includes(state.phase) || !Object.hasOwn(METHODS, method)) return;
   state.method = method; state.pick = null;
   try { localStorage.setItem(METHOD_KEY, method); } catch { /* Continue without saving preferences. */ }
   document.querySelectorAll('[data-quick-method]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.quickMethod === method)));
@@ -68,6 +70,8 @@ function reset() {
   $('#quick-animation-stage').removeAttribute('data-phase'); $('#quick-animation-label').textContent = '';
   $('#quick-selection-note').textContent = ''; $('#quick-note').value = ''; $('#quick-reflection').value = '';
   $('#quick-result-title').textContent = ''; $('#quick-result-detail').textContent = ''; $('#quick-save').disabled = false;
+  $('#quick-dialog').classList.remove('cinematic-active','cinematic-finished');
+  $('#quick-animation-stage').removeAttribute('data-renderer');
   setMethod(state.method);
 }
 function openQuick() {
@@ -80,9 +84,16 @@ function finish() {
   $('#quick-dialog').close(); reset();
   $('#quick-start-home').focus({ preventScroll: true });
 }
-function draw() {
+async function draw() {
   if (state.phase !== 'idle' || !hasQuickPick(state.method, state.pick)) return;
   try {
+    const cinematic = ['coin','cards'].includes(state.method);
+    const pendingRun = state.run;
+    if (cinematic) {
+      state.phase = 'loading'; lock();
+      await prepareReveal();
+      if (pendingRun !== state.run || !$('#quick-dialog').open) return;
+    }
     // Capture immutable choice/outcome once; motion never draws or changes the result.
     state.outcome = drawQuick(state.method, state.pick); state.phase = 'animating'; state.choice = state.outcome.result;
     state.createdAt = new Date(); state.id = null;
@@ -90,12 +101,14 @@ function draw() {
     $('#quick-selection-note').textContent = pickText();
     $('#quick-pick-block').hidden = true; $('#quick-draw').hidden = true; $('#quick-result').hidden = true;
     error(); lock();
-    state.motion = startQuickMotion($('#quick-animation-stage'), $('#quick-animation-label'), method, outcome, {
+    $('#quick-dialog').classList.toggle('cinematic-active', cinematic);
+    state.motion = (cinematic ? startCinematicMotion : startQuickMotion)($('#quick-animation-stage'), $('#quick-animation-label'), method, outcome, {
       reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
       onComplete: () => {
         if (run !== state.run || !$('#quick-dialog').open || state.phase !== 'animating') return;
-        state.phase = 'result'; state.motion = null;
-        $('#quick-idle').hidden = true; $('#quick-result').hidden = false;
+        state.phase = 'result';
+        $('#quick-idle').hidden = !cinematic; $('#quick-result').hidden = false;
+        $('#quick-dialog').classList.toggle('cinematic-finished', cinematic);
         $('#quick-result-method').textContent = `${METHODS[method].icon} ${METHODS[method].label}で決めました`;
         $('#quick-result-title').textContent = label(outcome.result);
         $('#quick-result-detail').textContent = outcome.detail;
@@ -106,6 +119,7 @@ function draw() {
     });
   } catch (e) {
     cancelMotion(); state.phase = 'idle'; $('#quick-draw').hidden = false; $('#quick-animation-stage').hidden = true;
+    $('#quick-dialog').classList.remove('cinematic-active','cinematic-finished');
     selection(); error(e instanceof Error ? e.message : '抽選を始められませんでした。');
   }
 }
@@ -145,5 +159,13 @@ $('#quick-choice-follow').addEventListener('click', () => setChoice(state.outcom
 $('#quick-choice-reverse').addEventListener('click', () => setChoice(opposite(state.outcome?.result)));
 $('#quick-save').addEventListener('click', saveMemo);
 $('#quick-dialog').addEventListener('cancel', e => { e.preventDefault(); finish(); });
-$('#quick-dialog').addEventListener('close', () => { if (state.phase === 'animating') { cancelMotion(); state.phase = 'idle'; } });
+$('#quick-dialog').addEventListener('close', () => { if (['animating','loading'].includes(state.phase)) { cancelMotion(); state.phase = 'idle'; } });
 setMethod(state.method);
+
+$('#quick-sound').addEventListener('click', () => {
+  const enabled = setRevealSound($('#quick-sound').getAttribute('aria-pressed') !== 'true');
+  $('#quick-sound').setAttribute('aria-pressed', String(enabled));
+  $('#quick-sound').textContent = enabled ? '音：オン' : '音：オフ';
+});
+// Preload public, local artwork only; notes never leave local storage.
+prepareReveal().catch(() => {});

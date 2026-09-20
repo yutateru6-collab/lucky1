@@ -1,0 +1,54 @@
+name: Cinematic card and coin quality review
+on:
+  pull_request:
+    paths: ['public/**', 'src/reveal/**', 'tests/**', '.github/workflows/cinematic-qa.yml']
+  push:
+    branches: [main]
+    paths: ['public/**', 'src/reveal/**', 'tests/**', '.github/workflows/cinematic-qa.yml']
+permissions:
+  contents: read
+jobs:
+  cinematic-review:
+    name: ${{ matrix.browser }} / ${{ matrix.motion }} / both endings
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+        motion: [no-preference, reduce]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.57.0
+      - run: python -m playwright install --with-deps ${{ matrix.browser }}
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+      - name: Actual PR code - both final faces, unchanged home, real-time recording
+        if: github.event_name == 'pull_request'
+        env:
+          MOTION_BROWSER: ${{ matrix.browser }}
+          MOTION_PREF: ${{ matrix.motion }}
+          BOTH_OUTCOMES: '1'
+        run: python tests/cinematic_review.py
+      - name: Verify deployed code and original Blender asset
+        if: github.event_name == 'push'
+        run: node scripts/verify-live.mjs
+      - name: Actual public root app - both final faces and complete recording
+        if: github.event_name == 'push'
+        env:
+          LUCKY_PUBLIC_URL: https://lucky1.itisnowornever271.workers.dev/
+          MOTION_BROWSER: ${{ matrix.browser }}
+          MOTION_PREF: ${{ matrix.motion }}
+          BOTH_OUTCOMES: '1'
+        run: python tests/cinematic_review.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lucky-cinematic-${{ matrix.browser }}-${{ matrix.motion }}
+          path: cinematic-review/
+          retention-days: 7

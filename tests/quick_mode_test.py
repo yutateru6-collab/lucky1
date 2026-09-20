@@ -8,7 +8,7 @@ server=subprocess.Popen(['node','scripts/serve.mjs'],cwd=ROOT,stdout=subprocess.
 try:
     time.sleep(1)
     with sync_playwright() as p:
-        report=run_contract(p,'chromium','no-preference','http://127.0.0.1:4173/',ROOT/'test-results'/'quick-408','4.0.8',methods=['coin','cards','dice','rps','roulette'],videos=False)
+        report=run_contract(p,'chromium','no-preference','http://127.0.0.1:4173/',ROOT/'test-results'/'quick-408','4.0.9',methods=['coin','cards','dice','rps','roulette'],videos=False)
         browser=p.chromium.launch(headless=True,args=['--no-sandbox'])
         ctx=browser.new_context(viewport={'width':320,'height':700},locale='ja-JP',reduced_motion='reduce')
         page=ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
@@ -29,7 +29,7 @@ try:
         assert page.evaluate('() => navigator.serviceWorker.controller !== null')
         ctx.set_offline(True);page.reload(wait_until='domcontentloaded');page.locator('#quick-start-home').click()
         page.locator('[data-quick-pick="left"]').click();page.locator('#quick-draw').click()
-        expect(page.locator('.quick-cards-wrap')).to_be_visible();page.wait_for_timeout(18000)
+        expect(page.locator('.cinematic-canvas')).to_be_visible();page.wait_for_timeout(18000)
         expect(page.locator('#quick-result')).to_be_visible()
         assert not errors,errors
         ctx.close();browser.close()

@@ -1,6 +1,6 @@
 /* Only app-shell resources are cached. User notes never enter Cache Storage. */
-const CACHE_NAME = 'lucky-shell-v4.0.8';
-const FILES = ['./', './index.html', './styles.css', './quick-mode.css', './quick-choice.css', './app.mjs', './quick-mode.mjs', './quick-draw.mjs', './quick-motion.mjs', './decision.mjs', './games.mjs', './journal.mjs', './words.mjs', './visuals.mjs', './vendor/anime.esm.min.js', './vendor/anime.LICENSE.md', './art/lucky-reference.webp', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
+const CACHE_NAME = 'lucky-shell-v4.0.9';
+const FILES = ['./', './index.html', './styles.css', './quick-mode.css', './quick-choice.css', './reveal/cinematic.mjs', './reveal/cinematic.css', './reveal/lucky-coin.glb', './reveal/THIRD_PARTY_LICENSES.txt', './app.mjs', './quick-mode.mjs', './quick-draw.mjs', './quick-motion.mjs', './decision.mjs', './games.mjs', './journal.mjs', './words.mjs', './visuals.mjs', './vendor/anime.esm.min.js', './vendor/anime.LICENSE.md', './art/lucky-reference.webp', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES)).then(() => self.skipWaiting()));
 });
