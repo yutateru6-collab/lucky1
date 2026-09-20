@@ -16,13 +16,15 @@
 .cinematic-badge{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);max-width:90%;white-space:nowrap;background:#ffffffdc;border:1px solid #eadfd6;color:#6d5868;border-radius:99px;padding:7px 16px;box-shadow:0 3px 14px #ae8c9b15;font-size:11px;font-weight:700;letter-spacing:.025em;pointer-events:none}
 .cinematic-badge.is-settled{background:#fffaf1;color:#65496b;border-color:#dec9a8}
 .quick-dialog.cinematic-active .quick-animation-label{height:22px;margin:8px 0 0!important;font-size:12px!important;color:#7c6677!important}
+.quick-dialog.cinematic-active .quick-animation-label:empty{display:none}
 .quick-dialog.cinematic-finished .quick-result-icon,
 .quick-dialog.cinematic-finished .quick-result-method,
+.quick-dialog.cinematic-finished #quick-result-copy,
 .quick-dialog.cinematic-finished .quick-concept-line{display:none}
-.quick-dialog.cinematic-finished .quick-result{padding-top:2px}
+.quick-dialog.cinematic-finished .quick-animation-stage{height:320px;min-height:260px}
+.quick-dialog.cinematic-finished .quick-result{padding-top:12px}
 .quick-dialog.cinematic-finished .quick-result h3{font-size:23px;margin-top:0}
 .quick-dialog.cinematic-finished .quick-result>p{margin-bottom:7px}
-.quick-dialog.cinematic-finished .quick-result-copy{font-size:11px}
 .quick-dialog.cinematic-finished .quick-actions{margin-top:10px}
-@media(max-height:690px){.quick-dialog.cinematic-active .quick-animation-stage{height:280px;min-height:280px}.quick-dialog.cinematic-active .quick-sheet{padding:16px}.quick-dialog.cinematic-active .quick-head h2{font-size:20px}}
+@media(max-height:690px){.quick-dialog.cinematic-active .quick-animation-stage{height:280px;min-height:260px}.quick-dialog.cinematic-active .quick-sheet{padding:16px}.quick-dialog.cinematic-active .quick-head h2{font-size:20px}.quick-dialog.cinematic-finished .quick-animation-stage{height:260px}}
 @media(prefers-reduced-motion:reduce){.cinematic-badge{transition:none}}
