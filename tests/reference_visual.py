@@ -33,12 +33,29 @@ try:
         page.add_init_script("window.draws=0; Object.defineProperty(crypto,'getRandomValues',{value:a=>{window.draws++;a[0]=1;return a}});")
         page.goto('http://127.0.0.1:4173')
         page.wait_for_selector('#home-methods .art-coin')
-        check('version is 4.0.2', page.locator('meta[name="lucky-version"]').get_attribute('content')=='4.0.2')
+        check('version is 4.0.3', page.locator('meta[name="lucky-version"]').get_attribute('content')=='4.0.3')
         check('quick choice is a secondary control, not a replacement for the approved hero CTA', page.locator('#home-start').is_visible() and page.locator('#quick-start-home').is_visible())
         page.locator('#quick-start-home').click()
         check('quick modal shows five methods without changing home layout', page.locator('[data-quick-method]').count()==5 and page.locator('#quick-dialog').is_visible())
         page.screenshot(path=str(OUT/'reference-quick-methods-390.png'),full_page=True)
         page.locator('#quick-close').click()
+        page.emulate_media(reduced_motion='no-preference')
+        animation_checks=[
+            ('coin','.quick-anim-coin',350),
+            ('cards','.quick-cards-wrap',850),
+            ('dice','.quick-anim-die',350),
+            ('rps','.quick-rps-wrap',850),
+            ('roulette','.quick-roulette-wheel',450),
+        ]
+        for method,selector,delay in animation_checks:
+            page.locator('#quick-start-home').click()
+            page.locator(f'[data-quick-method="{method}"]').click()
+            page.locator('#quick-draw').click()
+            page.wait_for_timeout(delay)
+            check(f'quick {method} animation stage is visible', page.locator('#quick-animation-stage').is_visible() and page.locator('#quick-animation-stage').get_attribute('data-method')==method and page.locator(selector).is_visible())
+            page.screenshot(path=str(OUT/f'reference-quick-animation-{method}-390.png'),full_page=True)
+            page.locator('#quick-close').click()
+        page.emulate_media(reduced_motion='reduce')
         check('approved sprite decodes under real CSP', page.evaluate("""async()=>{const image=new Image();image.src='./art/lucky-reference.webp';await image.decode();return image.width===800&&image.height===480}"""))
         check('five expected real navigation destinations', page.locator('#bottom-nav [data-nav]').evaluate_all("es=>es.map(e=>e.dataset.nav)")==['home','search','choose','history','profile'])
         check('first launch does not fabricate history', page.evaluate('localStorage.getItem("lucky.records.v2")') is None)
