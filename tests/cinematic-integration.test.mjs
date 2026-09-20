@@ -9,6 +9,8 @@ test('reviewed result artwork and stable caption space are included', async () =
   assert.ok(source.includes('RESULT_ART_409'));
   assert.ok(source.includes('bezierCurveTo'), 'result suit is deliberately drawn, not a tiny glyph');
   assert.ok(source.includes('900 80px'), 'the result needs a readable, bold title');
+  assert.ok(source.includes("finalYaw=Math.PI*(outcome.landed==='heads'?4:5)"), 'both wordmarks land upright');
+  assert.ok(source.includes('spin=mix(spin,finalYaw,settle)'), 'continuous motion reaches the same final yaw');
   const css = await read('public/reveal/cinematic.css');
   assert.ok(css.includes('.quick-animation-label:empty{display:block;visibility:hidden}'));
   assert.ok(css.includes('.quick-dialog.cinematic-finished'));
