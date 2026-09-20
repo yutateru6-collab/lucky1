@@ -33,7 +33,7 @@ try:
         page.add_init_script("window.draws=0; Object.defineProperty(crypto,'getRandomValues',{value:a=>{window.draws++;a[0]=1;return a}});")
         page.goto('http://127.0.0.1:4173')
         page.wait_for_selector('#home-methods .art-coin')
-        check('version is 4.0.5', page.locator('meta[name="lucky-version"]').get_attribute('content')=='4.0.5')
+        check('version is 4.0.6', page.locator('meta[name="lucky-version"]').get_attribute('content')=='4.0.6')
         check('both instant and detailed choices remain visible', page.locator('#home-start').is_visible() and page.locator('#quick-start-home').is_visible())
         quick_box=page.locator('#quick-start-home').bounding_box(); detail_box=page.locator('#home-start').bounding_box()
         check('instant no-input choice is the more prominent home action', quick_box['height']>detail_box['height'] and '入力なし・10秒' in page.locator('#quick-start-home').inner_text())
