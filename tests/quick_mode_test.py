@@ -42,7 +42,9 @@ try:
       page.wait_for_timeout(140)
       second_transform=page.locator(moving).evaluate("el=>getComputedStyle(el).transform")
       assert first_transform != second_transform, f"{method} did not visibly animate"
-      expect(page.locator('#quick-result-title')).to_have_text('やってみる！', timeout=4000)
+      page.wait_for_timeout(1500)
+      assert page.locator('#quick-result').is_hidden(), f"{method} revealed too early; suspense window is missing"
+      expect(page.locator('#quick-result-title')).to_have_text('やってみる！', timeout=5000)
       expect(page.locator('#quick-result-method')).to_have_text(label)
       assert page.evaluate("localStorage.getItem('lucky.records.v2')") is None
       if i < len(methods)-1:
@@ -68,7 +70,7 @@ try:
     assert len(page.evaluate("JSON.parse(localStorage.getItem('lucky.records.v2'))"))==1
 
     page.locator('#quick-start-home').click();page.locator('#quick-draw').click()
-    expect(page.locator('#quick-result-title')).to_have_text('やってみる！', timeout=4000)
+    expect(page.locator('#quick-result-title')).to_have_text('やってみる！', timeout=6500)
     page.locator('#quick-finish').click()
     assert len(page.evaluate("JSON.parse(localStorage.getItem('lucky.records.v2'))"))==1
 
@@ -102,4 +104,4 @@ try:
     reduce_ctx.close();browser.close()
 finally:
   server.terminate();server.wait(timeout=5)
-print(json.dumps({'passed':True,'checks':['root UI keeps primary CTA','five methods remain selectable','Anime.js changes transforms over time for every method','Reduce Motion keeps all five animations visibly moving','coin flip stage renders','card shuffle stage renders','dice roll stage renders','rps battle stage renders','roulette spin stage renders','result appears only after animation','repeated/closed animation cannot create a record','selected method is saved only with optional memo','last method is remembered','quick mode works offline']},ensure_ascii=False))
+print(json.dumps({'passed':True,'checks':['root UI keeps primary CTA','five methods remain selectable','Anime.js changes transforms over time for every method','normal mode keeps the result hidden for a suspense window','Reduce Motion keeps all five animations visibly moving','coin flip stage renders','card shuffle stage renders','dice roll stage renders','rps battle stage renders','roulette spin stage renders','result appears only after animation','repeated/closed animation cannot create a record','selected method is saved only with optional memo','last method is remembered','quick mode works offline']},ensure_ascii=False))
