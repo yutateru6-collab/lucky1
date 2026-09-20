@@ -27,6 +27,10 @@ if 'RESULT_ART_409' not in s:
     s=s.replace("g.font='700 63px sans-serif'", "g.font='900 80px \"Noto Sans CJK JP\",sans-serif'")
     s=s.replace("g.font='26px sans-serif';g.fillStyle='#727484'", "g.font='500 30px \"Noto Sans CJK JP\",sans-serif';g.fillStyle='#4b4d65'")
     s=s.replace('other.root.rotation.z+=take*.28;', 'other.root.rotation.z+=take*.28;other.root.visible=t<8.3;')
+# The backside lettering needs one half-turn after rolling over, not an inverted wordmark.
+if 'const finalYaw=' not in s:
+    s=s.replace("const settle=between(t,11.8,13.2);spin=mix(spin,Math.PI*4,settle);", "const finalYaw=Math.PI*(outcome.landed==='heads'?4:5);\n    const settle=between(t,11.8,13.2);spin=mix(spin,finalYaw,settle);")
+    s=s.replace("coin.rotation.set(0,Math.PI*4,outcome.landed==='heads'?0:Math.PI)","coin.rotation.set(0,finalYaw,outcome.landed==='heads'?0:Math.PI)")
 p.write_text(s)
 p=R/'public/reveal/cinematic.css';s=p.read_text()
 s=s.replace('.quick-dialog.cinematic-active .quick-animation-label:empty{display:none}', '.quick-dialog.cinematic-active .quick-animation-label:empty{display:block;visibility:hidden}\n.quick-dialog.cinematic-finished .quick-animation-label:empty{display:none}')
@@ -46,4 +50,4 @@ if 'BROWSER_CLOCK_409' not in s:
     s=s.replace("assert page.locator('#quick-result').is_hidden(),f'{method}: result arrived before target'", "assert page.evaluate('window.__revealMs') is None or page.evaluate('window.__revealMs')>=DURATIONS[method]-.4,f'{method}: result arrived before target'")
     s=s.replace("                assert page.locator('#quick-result').is_hidden()\n                assert page.locator('.quick-animation-visual').is_visible()", "                # BROWSER_CLOCK_409: retained 3D art remains inspectable after expensive GPU screenshots.\n                # Independent browser MutationObserver still measures the full reveal duration.\n                if method not in ('coin','cards'):assert page.locator('#quick-result').is_hidden()\n                assert page.locator('.quick-animation-visual').is_visible()")
     p.write_text(s)
-print('Applied recorded-review contrast, result artwork, stable framing and actual-clock assertions.')
+print('Applied recorded-review contrast, upright faces, result artwork and actual-clock assertions.')
