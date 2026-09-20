@@ -161,10 +161,11 @@ export function startCinematicMotion(stage,label,method,outcome,{reduced=false,o
     const turnSpeed=reduced?.34:1;
     spin=t<2.4?between(t,.4,2.4)*1.4:(1.4+(t-2.4)*4.65-(Math.max(0,t-6.2)**2)*.21)*turnSpeed;
     if(t>=8.1){const end=outcome.landed==='heads'?0:Math.PI;tilt=mix(Math.PI/2-.09,end,fall);tilt+=Math.sin(t*12)*.035*(1-fall);}
-    const settle=between(t,11.8,13.2);spin=mix(spin,Math.PI*4,settle);
+    const finalYaw=Math.PI*(outcome.landed==='heads'?4:5);
+    const settle=between(t,11.8,13.2);spin=mix(spin,finalYaw,settle);
     coin.rotation.order='YXZ';coin.rotation.set(0,spin,tilt);
     coin.position.set(Math.sin(t*.6)*.16*(1-settle),.059*Math.abs(Math.cos(tilt))+.76*Math.abs(Math.sin(tilt))+.005,0);
-    if(t>=13.2){coin.rotation.set(0,Math.PI*4,outcome.landed==='heads'?0:Math.PI);coin.position.set(0,.064,0);}
+    if(t>=13.2){coin.rotation.set(0,finalYaw,outcome.landed==='heads'?0:Math.PI);coin.position.set(0,.064,0);}
     const close=between(t,7.2,12.3);camera.position.set(mix(.2,0,close),mix(2.65,3.55,close),mix(4.7,2.32,close));target.set(0,mix(.30,.025,close),0);camera.lookAt(target);
     contact.position.x=coin.position.x;contact.scale.set(mix(.55,1.0,fall),mix(.75,1.0,fall),1);contact.material.opacity=.65;
     if(t<2.4)cue('prepare','いくよ。');else if(t<8.1)cue('spin','');else if(t<13.2)cue('suspense','どちらへ、倒れる？');else cue('settled','');
