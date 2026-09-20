@@ -16,7 +16,8 @@
 .cinematic-badge{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);max-width:90%;white-space:nowrap;background:#ffffffdc;border:1px solid #eadfd6;color:#6d5868;border-radius:99px;padding:7px 16px;box-shadow:0 3px 14px #ae8c9b15;font-size:11px;font-weight:700;letter-spacing:.025em;pointer-events:none}
 .cinematic-badge.is-settled{background:#fffaf1;color:#65496b;border-color:#dec9a8}
 .quick-dialog.cinematic-active .quick-animation-label{height:22px;margin:8px 0 0!important;font-size:12px!important;color:#7c6677!important}
-.quick-dialog.cinematic-active .quick-animation-label:empty{display:none}
+.quick-dialog.cinematic-active .quick-animation-label:empty{display:block;visibility:hidden}
+.quick-dialog.cinematic-finished .quick-animation-label:empty{display:none}
 .quick-dialog.cinematic-finished .quick-result-icon,
 .quick-dialog.cinematic-finished .quick-result-method,
 .quick-dialog.cinematic-finished #quick-result-copy,

@@ -53,9 +53,14 @@ function cardTexture(which,identity='left') {
   } else {
     g.fillStyle=yes?'#bb5475':'#418984';
     g.font='bold 54px Georgia,serif';g.textAlign='left';g.fillText('A',101,244);g.font='49px Georgia,serif';g.fillText(yes?'♥':'♠',99,301);
-    g.textAlign='center';g.font='210px Georgia,serif';g.fillText(yes?'♥':'♠',384,568);
-    g.font='700 63px sans-serif';g.fillStyle='#181c37';g.fillText(yes?'やってみる':'今回はやらない',384,744);
-    g.font='26px sans-serif';g.fillStyle='#727484';g.fillText(yes?'小さな一歩を、今日。':'今日は余白を、ひとつ。',384,823);
+    // RESULT_ART_409: original large vector suit, not a tiny font glyph.
+    g.save();g.translate(384,498);if(!yes)g.rotate(Math.PI);
+    g.beginPath();g.moveTo(0,126);g.bezierCurveTo(-30,87,-151,1,-151,-55);g.bezierCurveTo(-151,-148,-35,-165,0,-85);g.bezierCurveTo(35,-165,151,-148,151,-55);g.bezierCurveTo(151,1,30,87,0,126);g.closePath();
+    const ink=g.createLinearGradient(-90,-140,100,130);ink.addColorStop(0,yes?'#d94c84':'#256d73');ink.addColorStop(1,yes?'#9f254f':'#123f54');g.fillStyle=ink;g.fill();g.restore();
+    if(!yes){g.fillStyle='#123f54';g.beginPath();g.moveTo(370,549);g.quadraticCurveTo(374,583,343,617);g.lineTo(425,617);g.quadraticCurveTo(394,583,398,549);g.closePath();g.fill();}
+    g.textAlign='center';
+    g.font='900 80px "Noto Sans CJK JP",sans-serif';g.fillStyle='#181c37';g.fillText(yes?'やってみる':'今回はやらない',384,744);
+    g.font='500 30px "Noto Sans CJK JP",sans-serif';g.fillStyle='#4b4d65';g.fillText(yes?'小さな一歩を、今日。':'今日は余白を、ひとつ。',384,823);
     g.font='italic bold 56px Georgia,serif';g.fillStyle='#8e7189';g.fillText('lucky',384,1010);
     g.save();g.translate(666,969);g.rotate(Math.PI);g.textAlign='left';g.fillStyle=yes?'#bb5475':'#418984';g.font='bold 54px Georgia,serif';g.fillText('A',0,0);g.restore();
   }
@@ -139,7 +144,7 @@ export function startCinematicMotion(stage,label,method,outcome,{reduced=false,o
     const sign=outcome.chosenCard===0?-1:1;
     chosen.root.position.set(mix(chosen.root.position.x,0,take),mix(chosen.root.position.y,1.15,take),mix(chosen.root.position.z,.18,take));
     chosen.root.rotation.set(mix(-Math.PI/2,-.035,take),Math.PI*turn,mix(sign*-.12,0,take));
-    other.root.position.x=mix(other.root.position.x,-sign*2.8,take);other.root.position.z=mix(other.root.position.z,-1.3,take);other.root.rotation.z+=take*.28;
+    other.root.position.x=mix(other.root.position.x,-sign*2.8,take);other.root.position.z=mix(other.root.position.z,-1.3,take);other.root.rotation.z+=take*.28;other.root.visible=t<8.3;
     const bend=(between(t,8.3,11.7)*.29+between(t,11.7,12.5)*.055)*(1-between(t,13.35,14.8));chosen.bend(reduced?bend*.2:bend);
     const camClose=reduced?close*.75:close;camera.position.set(mix(0,.12,camClose),mix(4.7,1.6,camClose),mix(5.6,4.8,camClose));target.set(0,mix(.1,1.12,camClose),.08);camera.lookAt(target);
     contact.position.x=chosen.root.position.x;contact.scale.set(1.2,1.25,1);contact.material.opacity=mix(.72,.25,take);
