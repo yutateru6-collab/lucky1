@@ -26,9 +26,18 @@ jobs:
           python-version: '3.12'
       - run: pip install playwright==1.57.0
       - run: python -m playwright install --with-deps chromium webkit
-      - name: Verify actual public URL motion in Chromium and WebKit
+      - name: Verify current public URL motion on pull requests
+        if: github.event_name == 'pull_request'
         env:
           LUCKY_PUBLIC_URL: https://lucky1.itisnowornever271.workers.dev/
+          REQUIRE_REDUCED_MOTION: '0'
+        run: python tests/public_animation_test.py
+      - name: Verify deployed main in Chromium and WebKit, including Reduce Motion
+        if: github.event_name == 'push'
+        env:
+          LUCKY_PUBLIC_URL: https://lucky1.itisnowornever271.workers.dev/
+          EXPECTED_VERSION: source
+          REQUIRE_REDUCED_MOTION: '1'
         run: python tests/public_animation_test.py
       - uses: actions/upload-artifact@v4
         if: always()
