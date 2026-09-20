@@ -16,3 +16,55 @@
 .quick-draw-button{display:flex;flex-direction:column;align-items:center;justify-content:center;margin-left:auto;margin-right:auto}.quick-draw-icon{font-size:29px;line-height:1;margin-bottom:5px}.quick-draw-button>#quick-draw-label{display:block;font-size:18px;line-height:1.25}.quick-result-method{font-size:10px!important;font-weight:800;color:#8e5a73!important;margin-bottom:5px!important}.quick-result-detail{font-size:10px!important;color:var(--muted)!important;margin-top:-2px!important;margin-bottom:9px!important}
 :root[data-theme="dark"] .quick-method-picker button{background:#202e49;color:#f4f5ff;border-color:#354465}:root[data-theme="dark"] .quick-method-picker button[aria-pressed=true]{background:#463044;border-color:#d66a98;color:#ffd8e9}:root[data-theme="dark"] .quick-method-label>span{color:#f4f5ff}:root[data-theme="dark"] .quick-result-method{color:#ffafd0!important}
 @media(max-width:359px){.quick-method-picker{gap:3px}.quick-method-picker button{min-height:54px;padding-left:1px;padding-right:1px}.quick-method-picker button span{font-size:18px}.quick-method-picker button b{font-size:7.5px}}
+
+/* Method-specific quick-choice motion. This occupies the same space as the round draw button. */
+.quick-animation-stage{min-height:164px;display:grid;place-items:center;margin:0 auto;width:100%;overflow:hidden}
+.quick-animation-stage[hidden]{display:none!important}.quick-animation-visual{width:100%;min-height:158px;display:grid;place-items:center;position:relative}
+.quick-animation-label{min-height:18px;margin:3px 0 4px!important;font-size:10px!important;font-weight:800;color:#9a5473!important;letter-spacing:.02em}.quick-animation-label:empty{visibility:hidden}
+
+/* Coin: a real two-sided flip that lands on 表 / 裏. */
+.quick-coin-wrap{width:136px;height:136px;display:grid;place-items:center;perspective:700px}
+.quick-anim-coin{position:relative;width:112px;height:112px;border-radius:50%;transform-style:preserve-3d;box-shadow:0 8px 0 #bd923e,0 15px 25px #6e512528}
+.quick-coin-wrap.land-front .quick-anim-coin{animation:quick-coin-front 980ms cubic-bezier(.18,.72,.2,1) forwards}
+.quick-coin-wrap.land-back .quick-anim-coin{animation:quick-coin-back 980ms cubic-bezier(.18,.72,.2,1) forwards}
+.coin-face{position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;backface-visibility:hidden;border:5px solid #ffeec4;background:radial-gradient(circle at 36% 28%,#fff4c9,#e5bc62 62%,#ba8730);color:#76591f;font-size:24px;font-weight:900;text-shadow:0 1px 0 #fff4}
+.coin-face:after{content:"";position:absolute;inset:10px;border:2px dotted #9d7a35;border-radius:50%;opacity:.7}.coin-back{transform:rotateY(180deg);background:radial-gradient(circle at 36% 28%,#fff4d7,#dcae55 62%,#a97829)}
+@keyframes quick-coin-front{0%{transform:translateY(0) rotateY(0)}35%{transform:translateY(-28px) rotateY(630deg)}70%{transform:translateY(-8px) rotateY(1120deg)}100%{transform:translateY(0) rotateY(1440deg)}}
+@keyframes quick-coin-back{0%{transform:translateY(0) rotateY(0)}35%{transform:translateY(-28px) rotateY(630deg)}70%{transform:translateY(-8px) rotateY(1210deg)}100%{transform:translateY(0) rotateY(1620deg)}}
+
+/* Cards: shuffle both backs, then bring the selected one forward and flip it. */
+.quick-cards-wrap{position:relative;width:205px;height:150px;perspective:650px}
+.quick-anim-card{position:absolute;top:18px;width:82px;height:116px;transition:transform .32s ease,opacity .32s ease;transform-style:preserve-3d}
+.quick-anim-card:nth-child(1){left:25px;transform:rotate(-9deg);animation:quick-card-left 720ms ease-in-out both}
+.quick-anim-card:nth-child(2){right:25px;transform:rotate(9deg);animation:quick-card-right 720ms ease-in-out both}
+.quick-card-inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .38s cubic-bezier(.25,.8,.3,1)}
+.quick-card-back,.quick-card-front{position:absolute;inset:0;display:grid;place-items:center;border-radius:11px;backface-visibility:hidden;border:3px solid #fff;box-shadow:0 8px 17px #1c27502a;font-size:36px;font-weight:900}
+.quick-card-back{background:linear-gradient(145deg,#8d6cdd,#6547ba);color:#fff}.quick-card-front{transform:rotateY(180deg);background:#fff;color:#16224d;border-color:#ffe1ee}.quick-card-front.yes{color:#e74482}.quick-card-front.no{color:#18244f}
+.quick-cards-wrap.reveal .chosen .quick-card-inner{transform:rotateY(180deg)}.quick-cards-wrap.reveal .quick-anim-card:not(.chosen){opacity:.35}
+.quick-cards-wrap.reveal .quick-anim-card:nth-child(1).chosen{z-index:4;transform:translateX(48px) rotate(0deg) scale(1.08)}
+.quick-cards-wrap.reveal .quick-anim-card:nth-child(2).chosen{z-index:4;transform:translateX(-48px) rotate(0deg) scale(1.08)}
+@keyframes quick-card-left{0%{transform:translateX(0) rotate(-9deg)}30%{transform:translateX(75px) rotate(8deg)}62%{transform:translateX(18px) rotate(-5deg)}100%{transform:translateX(0) rotate(-9deg)}}
+@keyframes quick-card-right{0%{transform:translateX(0) rotate(9deg)}30%{transform:translateX(-75px) rotate(-8deg)}62%{transform:translateX(-18px) rotate(5deg)}100%{transform:translateX(0) rotate(9deg)}}
+
+/* Dice: tumble in 3D and settle showing the actual sampled face. */
+.quick-anim-die{width:106px;height:106px;border-radius:22px;display:grid;place-items:center;background:linear-gradient(145deg,#fff,#ecf2ff);border:3px solid #d9e5ff;box-shadow:0 9px 0 #9db9e2,0 17px 25px #314a7930;color:#25345f;font:78px/1 Georgia,serif;animation:quick-dice-roll 1080ms cubic-bezier(.18,.75,.22,1) forwards}
+@keyframes quick-dice-roll{0%{transform:translateY(0) rotate(0) scale(.92)}18%{transform:translateY(-26px) rotate(105deg) scale(1.03)}38%{transform:translateY(4px) rotate(205deg) scale(.94)}58%{transform:translateY(-17px) rotate(315deg) scale(1.02)}78%{transform:translateY(1px) rotate(395deg)}100%{transform:translateY(0) rotate(360deg) scale(1)}}
+
+/* RPS: both fists bounce three times, then reveal the sampled hands on ぽん. */
+.quick-rps-wrap{width:min(260px,92%);display:grid;grid-template-columns:1fr 42px 1fr;align-items:center;gap:3px}.quick-rps-player{display:grid;justify-items:center;gap:3px}.quick-rps-player small{font-size:9px;color:var(--muted);font-weight:800}.quick-rps-hand{display:block;font-size:61px;line-height:1;filter:drop-shadow(0 6px 7px #1f2a531e);animation:quick-rps-bounce 760ms ease-in-out both;transform-origin:center bottom}.quick-rps-player:last-child .quick-rps-hand{animation-delay:40ms}.quick-rps-vs{font-size:13px;color:#b36a89}
+.quick-rps-wrap.pon .quick-rps-hand{animation:quick-rps-pop .42s cubic-bezier(.2,.85,.25,1) both}
+@keyframes quick-rps-bounce{0%,100%{transform:translateY(0) rotate(0)}18%{transform:translateY(-15px) rotate(-8deg)}36%{transform:translateY(1px) rotate(4deg)}55%{transform:translateY(-13px) rotate(-6deg)}73%{transform:translateY(1px) rotate(3deg)}88%{transform:translateY(-9px) rotate(-3deg)}}
+@keyframes quick-rps-pop{0%{transform:scale(.72)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+
+/* Roulette: spin an 8-slot wheel and stop on the actual sampled slot. */
+.quick-roulette-wrap{position:relative;width:154px;height:154px;display:grid;place-items:center}.quick-roulette-pointer{position:absolute;z-index:4;top:-3px;left:50%;transform:translateX(-50%);font-size:23px;color:#ffcf42;text-shadow:0 2px 2px #694d2960}
+.quick-roulette-wheel{--quick-stop-angle:0deg;position:relative;width:138px;height:138px;border-radius:50%;border:7px solid #f1d59a;background:repeating-conic-gradient(from -22.5deg,transparent 0 42deg,#fff8 42deg 45deg),conic-gradient(#ff65a8 0 180deg,#6dc9f6 180deg 360deg);box-shadow:0 9px 0 #ab83d7,0 16px 23px #39265b29;animation:quick-roulette-spin 1480ms cubic-bezier(.12,.7,.18,1) forwards}
+.quick-roulette-wheel:after{content:"";position:absolute;inset:18px;border-radius:50%;border:2px solid #fff9}.quick-roulette-center{position:absolute;inset:42px;border-radius:50%;z-index:2;display:grid;place-items:center;background:#fff8f2;border:3px solid #ffe5a9;color:#6d4d8e;font-weight:900;font-size:20px}
+@keyframes quick-roulette-spin{0%{transform:rotate(0deg)}100%{transform:rotate(calc(1440deg + var(--quick-stop-angle)))}}
+
+:root[data-theme="dark"] .quick-card-front{background:#f7f8ff}:root[data-theme="dark"] .quick-anim-die{background:linear-gradient(145deg,#eef3ff,#cad9f3);color:#1d2b50}:root[data-theme="dark"] .quick-animation-label{color:#ffafd0!important}
+
+@media(prefers-reduced-motion:reduce){
+  .quick-anim-coin,.quick-anim-card,.quick-anim-die,.quick-rps-hand,.quick-roulette-wheel{animation-duration:.12s!important;animation-delay:0s!important}
+  .quick-card-inner,.quick-anim-card{transition-duration:.08s!important}
+}
