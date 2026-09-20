@@ -26,7 +26,7 @@ try:
       'coin':('🪙 コインで決めました','.quick-anim-coin','.quick-anim-coin'),
       'cards':('🃏 カードで決めました','.quick-cards-wrap','.quick-anim-card:first-child'),
       'dice':('🎲 サイコロで決めました','.quick-anim-die','.quick-anim-die'),
-      'rps':('✌️ じゃんけんで決めました','.quick-rps-wrap','.quick-rps-hand:first-of-type'),
+      'rps':('✌️ じゃんけんで決めました','.quick-rps-wrap','.quick-rps-player:first-child .quick-rps-hand'),
       'roulette':('🎡 ルーレットで決めました','.quick-roulette-wheel','.quick-roulette-wheel')
     }
     for i,(method,(label,visual,moving)) in enumerate(methods.items()):
