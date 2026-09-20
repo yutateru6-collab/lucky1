@@ -100,3 +100,15 @@
 :root[data-theme="dark"] .quick-dialog .quick-method-picker button[aria-pressed=true],:root[data-theme="dark"] .quick-dialog .quick-choice-row button[aria-pressed=true]{background:#fff0f6!important;color:#ac2e65!important;border-color:#f58ab8!important}
 :root[data-theme="dark"] .quick-dialog .quick-concept-line{background:#f3fbff!important;border-color:#d8eef8!important;color:#385b72!important}
 :root[data-theme="dark"] .quick-dialog .quick-result-method,:root[data-theme="dark"] .quick-dialog .quick-animation-label{color:#a14d75!important}
+
+/* 4.0.5: Lucky is intentionally bright. The modal and the page behind it never darken. */
+html,body{background:#fffafc!important;color-scheme:light!important}
+.app-shell{background:#fff!important}
+.quick-dialog::backdrop{background:rgba(248,250,255,.78)!important;backdrop-filter:blur(4px) saturate(1.02)!important}
+.setting-theme-note{margin:8px 0 0;color:#69769a;font-size:11px}
+
+/* Anime.js owns these transforms. Disable the earlier CSS keyframe fallbacks to avoid double motion. */
+.quick-anim-coin,.quick-anim-card,.quick-anim-die,.quick-rps-hand,.quick-roulette-wheel{animation:none!important}
+.quick-card-inner,.quick-anim-card{transition:none!important}
+.quick-static-card{width:82px;height:116px;border-radius:12px;display:grid;place-items:center;background:#fff;border:3px solid #ffe1ee;box-shadow:0 8px 17px #1c27502a;color:#e74482;font-size:38px;font-weight:900}
+.quick-static-coin{width:112px;height:112px;border-radius:50%;display:grid;place-items:center;border:5px solid #ffeec4;background:radial-gradient(circle at 36% 28%,#fff4c9,#e5bc62 62%,#ba8730);color:#76591f;font-size:24px;font-weight:900}

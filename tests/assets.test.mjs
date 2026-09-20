@@ -22,10 +22,18 @@ test('user content is inserted as text, not executable HTML', async () => {
     assert.doesNotMatch(app, /fetch\(|XMLHttpRequest|sendBeacon|WebSocket/);
   }
 });
+test('vendored Anime.js and its license are shipped locally', async () => {
+  await access(new URL('public/vendor/anime.esm.min.js', root));
+  const license = await read('public/vendor/anime.LICENSE.md');
+  assert.match(license, /MIT License/i);
+  const quick = await read('public/quick-mode.mjs');
+  assert.match(quick, /from '\.\/vendor\/anime\.esm\.min\.js'/);
+});
+
 test('security headers and offline version are present', async () => {
   const headers = await read('public/_headers');
   assert.match(headers, /Content-Security-Policy/);
   assert.match(headers, /camera=\(\), microphone=\(\), geolocation=\(\)/);
   const sw = await read('public/sw.js');
-  assert.match(sw, /lucky-shell-v4\.0\.4/);
+  assert.match(sw, /lucky-shell-v4\.0\.5/);
 });

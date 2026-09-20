@@ -90,10 +90,11 @@ try:
     calls=page.evaluate('window.randomCalls'); page.click('#game-controls .primary-button'); page.wait_for_timeout(100)
     check('serious decision safety guard runs before randomness', page.evaluate('window.randomCalls')==calls and page.locator('#result-view').is_hidden())
 
-    page.locator('#game-view .close-flow').click(); page.locator('#home-view').wait_for(state='visible'); page.click('#quick-settings'); page.click('#theme-dark')
-    check('dark mode can be enabled', page.evaluate('document.documentElement.dataset.theme')=='dark')
-    page.locator('#settings-dialog').evaluate('el=>el.close()')
-    page.screenshot(path=str(OUT/'dark-v4-mobile.png'))
+    page.locator('#game-view .close-flow').click(); page.locator('#home-view').wait_for(state='visible')
+    page.emulate_media(color_scheme='dark'); page.reload(); page.wait_for_selector('#home-view')
+    check('Lucky stays light when the operating system prefers dark', page.evaluate('document.documentElement.dataset.theme')=='light')
+    check('dark theme controls are removed', page.locator('#theme-dark').count()==0 and page.locator('#theme-system').count()==0)
+    page.screenshot(path=str(OUT/'light-v4-under-dark-os.png'))
     for width in [320,390,768,1200]:
         page.set_viewport_size({'width':width,'height':900 if width>800 else 844})
         for route in ['home','search','choose','history','words','profile']:
