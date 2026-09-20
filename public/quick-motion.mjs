@@ -36,11 +36,12 @@ export function startQuickMotion(stage, label, method, outcome, { reduced = fals
     wrap.append(coin); visual.append(wrap);
     const target = coinLandingAngle(outcome.landed, reduced ? 0 : 8);
     if (reduced) {
-      // No high-speed 3D spins for Reduce Motion, but preserve the full wait and final face.
+      // Keep the full wait and final face, without high-speed spins. Opacity stays 1
+      // on preserve-3d objects so WebKit does not flatten their child faces.
       for (let i = 0; i < 9; i++) {
         const a = .06 + i * .085;
-        add(coin, { y: -3, opacity: .80, ease: 'inOut(2)' }, a, a + .04);
-        add(coin, { y: 0, opacity: 1, ease: 'inOut(2)' }, a + .04, a + .08);
+        add(coin, { y: -5, scale: 1.02, ease: 'inOut(2)' }, a, a + .04);
+        add(coin, { y: 0, scale: 1, ease: 'inOut(2)' }, a + .04, a + .08);
       }
       add(coin, { rotateY: target, y: 0, ease: 'inOut(3)' }, .90, .96);
     } else {
@@ -103,8 +104,8 @@ export function startQuickMotion(stage, label, method, outcome, { reduced = fals
     if (reduced) {
       for (let i = 0; i < 8; i++) {
         const a = .04 + i * .095;
-        add(die, { rotateZ: i % 2 ? 3 : -3, y: -3, opacity: .8, ease: 'inOut(2)' }, a, a + .045);
-        add(die, { rotateZ: 0, y: 0, opacity: 1, ease: 'inOut(2)' }, a + .045, a + .09);
+        add(die, { rotateZ: i % 2 ? 4 : -4, y: -5, scale: 1.02, ease: 'inOut(2)' }, a, a + .045);
+        add(die, { rotateZ: 0, y: 0, scale: 1, ease: 'inOut(2)' }, a + .045, a + .09);
       }
       add(die, { rotateX: x, rotateY: y, rotateZ: 0, ease: 'inOut(3)' }, .88, .96);
     } else {
