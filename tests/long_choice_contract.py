@@ -26,7 +26,7 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
         launch['args']=['--no-sandbox']
         if os.environ.get('CHROMIUM_PATH'):launch['executable_path']=os.environ['CHROMIUM_PATH']
     browser=getattr(pw,browser_name).launch(**launch)
-    report={'url':url,'browser':browser_name,'motion':motion,'expectedVersion':expected,'realClock':True,'cases':[],'errors':[],'passed':False}
+    report={'url':url,'browser':browser_name,'motion':motion,'expectedVersion':expected,'realClock':True,'cases':[],'errors':[],'captureDiagnostics':[],'passed':False}
     def save_report(): (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
     try:
         for method in methods or DURATIONS:
@@ -35,12 +35,45 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
             if videos:options.update(record_video_dir=str(out/'raw-video'),record_video_size={'width':390,'height':844})
             ctx=browser.new_context(**options);page=ctx.new_page()
             page.on('pageerror',lambda e:report['errors'].append(str(e)))
-            page.on('console',lambda m:report['errors'].append(m.text) if m.type=='error' else None)
+            capture = {'active':False,'messages':[]}
+            screenshot_warning = "Refused to apply a stylesheet because its hash, its nonce, or 'unsafe-inline' does not appear in the style-src directive of the Content Security Policy."
+            def console_message(message):
+                if message.type!='error':return
+                if browser_name=='webkit' and capture['active'] and message.text==screenshot_warning:
+                    capture['messages'].append(message.text)
+                else:report['errors'].append(message.text)
+            page.on('console',console_message)
+            def shot(target, **options):
+                # Playwright 1.57 WebKit injects an empty `body {}` stylesheet to
+                # synchronize screenshots. The production CSP correctly blocks it.
+                # Attribute ONLY that observed empty rule to capture diagnostics;
+                # every application error and other blocked style still fails QA.
+                capture['messages']=[]
+                page.evaluate("""()=>{
+                  window.__captureStyles=[];
+                  const collect=records=>{for(const record of records)for(const item of record.addedNodes)if(item.nodeName==='STYLE')window.__captureStyles.push(item.textContent)};
+                  window.__captureCollect=collect;
+                  window.__captureObserver=new MutationObserver(collect);
+                  window.__captureObserver.observe(document,{childList:true,subtree:true});
+                }""")
+                capture['active']=True
+                try:return target.screenshot(caret='initial',animations='allow',**options)
+                finally:
+                    styles=page.evaluate("""()=>{
+                      window.__captureCollect(window.__captureObserver.takeRecords());
+                      window.__captureObserver.disconnect();return window.__captureStyles;
+                    }""")
+                    capture['active']=False
+                    verified=sum(text.strip()=='body {}' for text in styles)
+                    if capture['messages'] and verified>=len(capture['messages']) and all(text.strip()=='body {}' for text in styles):
+                        report['captureDiagnostics'].append({'method':method,'source':'Playwright WebKit screenshot synchronization','blockedEmptyStyles':verified,'message':screenshot_warning})
+                    else:report['errors'].extend(capture['messages'])
             try:
                 page.goto(url,wait_until='networkidle');expect(page.locator('meta[name="lucky-version"]')).to_have_attribute('content',expected)
-                assert page.locator('html').get_attribute('data-theme')=='light'
+                expect(page.locator('html')).to_have_attribute('data-theme','light',timeout=15000)
+                expect(page.locator('#quick-start-home')).to_be_visible()
                 assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-                if method=='coin':page.screenshot(path=str(out/'home.png'),full_page=True)
+                if method=='coin':shot(page,path=str(out/'home.png'),full_page=True)
                 page.locator('#quick-start-home').click();page.locator(f'[data-quick-method="{method}"]').click()
                 assert page.locator('#quick-dialog textarea:visible').count()==0
                 assert page.locator('#quick-memo-panel').is_hidden()
@@ -57,7 +90,7 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                     assert page.locator(f'[data-quick-pick="{pick}"]').get_attribute('aria-pressed')=='true'
                     assert page.locator('#quick-draw').is_enabled()
                 case['pick']=pick
-                page.screenshot(path=str(out/f'{method}-pick.png'))
+                shot(page,path=str(out/f'{method}-pick.png'))
                 # Start/end are observed in the actual browser, not inferred from declared durations.
                 page.evaluate("""()=>{
                   window.__revealMs=null;window.__startedMs=null;
@@ -73,9 +106,9 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                 assert page.locator(f'[data-quick-method="{method}"]').is_disabled()
                 # Actual artwork, not the progress indicator or a layout jump, must change.
                 page.wait_for_timeout(500)
-                a=page.locator('.quick-animation-visual').screenshot(animations='allow')
+                a=shot(page.locator('.quick-animation-visual'))
                 page.wait_for_timeout(1250)
-                b=page.locator('.quick-animation-visual').screenshot(animations='allow')
+                b=shot(page.locator('.quick-animation-visual'))
                 (out/f'{method}-motion-a.png').write_bytes(a);(out/f'{method}-motion-b.png').write_bytes(b)
                 case['visibleArtChanged']=hashlib.sha256(a).digest()!=hashlib.sha256(b).digest()
                 assert case['visibleArtChanged'],f'{method}: artwork did not change'
@@ -83,11 +116,11 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                 wait_elapsed(page,6000)
                 assert page.locator('#quick-result').is_hidden(),f'{method}: revealed within 6s'
                 assert page.evaluate("localStorage.getItem('lucky.records.v2')") is None
-                page.screenshot(path=str(out/f'{method}-after-6s.png'))
+                shot(page,path=str(out/f'{method}-after-6s.png'))
                 wait_elapsed(page,DURATIONS[method]-1600)
                 assert page.locator('#quick-result').is_hidden(),f'{method}: result arrived before target'
                 if method=='cards':assert page.locator('.quick-card-front').all_text_contents()==['','']
-                page.screenshot(path=str(out/f'{method}-before-reveal.png'))
+                shot(page,path=str(out/f'{method}-before-reveal.png'))
                 # Inspect the final physical pose while it is still rendered. Reading
                 # getComputedStyle after #quick-idle is display:none yields 'none',
                 # even if the visible wheel previously stopped at the correct angle.
@@ -133,7 +166,7 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                     assert abs((((slot-.5)*45+angle+180)%360)-180)<.1,pose
                 else:
                     assert ('勝ち' if text=='やってみる！' else '負け') in detail
-                page.screenshot(path=str(out/f'{method}-result.png'))
+                shot(page,path=str(out/f'{method}-result.png'))
                 assert page.evaluate("localStorage.getItem('lucky.records.v2')") is None
                 if method in ('coin','cards'):
                     page.locator('#quick-memo-open').click();page.locator('#quick-note').fill('検証用：いつもと違う道を歩く')
@@ -150,6 +183,9 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                     assert page.evaluate("localStorage.getItem('lucky.records.v2')") is None
                 case['passed']=True
                 print(f'PASS {browser_name}/{motion}/{method}: {elapsed:.0f}ms, pick={pick}, outcome={text}',flush=True)
+            except Exception as exc:
+                case['error']=str(exc)
+                raise
             finally:
                 video=page.video if videos else None
                 ctx.close()
