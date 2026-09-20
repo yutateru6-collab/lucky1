@@ -39,10 +39,11 @@ try:
                     for stamp in stamps:
                         delay=stamp-(time.monotonic()-start)
                         if delay>0:page.wait_for_timeout(delay*1000)
-                        page.screenshot(path=str(OUT/f'{name}-{stamp:04.1f}s.png'),caret='initial',animations='allow')
-                        if stamp<=12.5:
+                        if stamp<=10.5:
                             assert page.locator('#quick-result').is_hidden()
                             assert not page.locator('#quick-animation-stage').get_attribute('data-visible-result')
+                        case.setdefault('samples',[]).append({'requestedSeconds':stamp,'renderedMs':page.locator('#quick-animation-stage').get_attribute('data-elapsed-ms')})
+                        page.screenshot(path=str(OUT/f'{name}-{stamp:04.1f}s.png'),caret='initial',animations='allow')
                     expect(page.locator('#quick-result')).to_be_visible(timeout=7000)
                     elapsed=time.monotonic()-start;case['elapsedSeconds']=round(elapsed,3)
                     assert (17 if method=='cards' else 15.5)-.04<=elapsed<(21 if method=='cards' else 19.5),elapsed

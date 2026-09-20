@@ -1,3 +1,4 @@
+// PHOTOMETRY_409: exposure and paper contrast corrected against recorded real-browser frames.
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -35,7 +36,7 @@ function cardTexture(which,identity='left') {
   const c=document.createElement('canvas');c.width=768;c.height=1152;const g=c.getContext('2d');
   const back=which==='back', yes=which==='yes';
   g.fillStyle='#fcf7ef';g.fillRect(0,0,768,1152);
-  const grad=g.createLinearGradient(0,0,768,1152);grad.addColorStop(0,back?'#ead8fa':yes?'#fff0e6':'#ecf9f3');grad.addColorStop(.53,back?'#fce6ee':'#fffdf4');grad.addColorStop(1,back?'#cdc5f0':yes?'#f4d6e4':'#d5edf3');
+  const grad=g.createLinearGradient(0,0,768,1152);grad.addColorStop(0,back?'#cbaadc':yes?'#fff0e6':'#ecf9f3');grad.addColorStop(.53,back?'#f6ccdf':'#fffdf4');grad.addColorStop(1,back?'#b4a4db':yes?'#f4d6e4':'#d5edf3');
   rounded(g,24,24,720,1104,45);g.fillStyle=grad;g.fill();
   for(const inset of [39,54,75]){rounded(g,inset,inset,768-inset*2,1152-inset*2,32);g.strokeStyle=inset===54?'#fefcf2':'#b99050';g.lineWidth=inset===54?5:2;g.stroke();}
   g.textAlign='center';g.fillStyle='#644964';g.font='600 23px Georgia,serif';g.fillText('A LITTLE CHANCE',384,154);
@@ -53,7 +54,7 @@ function cardTexture(which,identity='left') {
     g.fillStyle=yes?'#bb5475':'#418984';
     g.font='bold 54px Georgia,serif';g.textAlign='left';g.fillText('A',101,244);g.font='49px Georgia,serif';g.fillText(yes?'♥':'♠',99,301);
     g.textAlign='center';g.font='210px Georgia,serif';g.fillText(yes?'♥':'♠',384,568);
-    g.font='700 63px sans-serif';g.fillStyle='#343752';g.fillText(yes?'やってみる':'今回はやらない',384,744);
+    g.font='700 63px sans-serif';g.fillStyle='#181c37';g.fillText(yes?'やってみる':'今回はやらない',384,744);
     g.font='26px sans-serif';g.fillStyle='#727484';g.fillText(yes?'小さな一歩を、今日。':'今日は余白を、ひとつ。',384,823);
     g.font='italic bold 56px Georgia,serif';g.fillStyle='#8e7189';g.fillText('lucky',384,1010);
     g.save();g.translate(666,969);g.rotate(Math.PI);g.textAlign='left';g.fillStyle=yes?'#bb5475':'#418984';g.font='bold 54px Georgia,serif';g.fillText('A',0,0);g.restore();
@@ -86,7 +87,7 @@ function makeCard(identity) {
     }
     for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const a=j*(nx+1)+i,b=a+1,c=a+nx+1,d=c+1;idx.push(...(sign>0?[a,b,c,b,d,c]:[a,c,b,b,c,d]));}
     const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.setIndex(idx);geo.computeVertexNormals();geo.userData.base=new Float32Array(positions);
-    const mat=new T.MeshPhysicalMaterial({map:sign>0?cardTexture('back',identity):cardTexture('yes'),roughness:.36,metalness:.08,clearcoat:.65,clearcoatRoughness:.27,side:T.FrontSide});
+    const mat=new T.MeshPhysicalMaterial({map:sign>0?cardTexture('back',identity):cardTexture('yes'),roughness:.52,metalness:0,clearcoat:.18,clearcoatRoughness:.35,side:T.FrontSide});
     const mesh=new T.Mesh(geo,mat);mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);surfaces.push(mesh);
   }
   const outline=[];for(let corner=0;corner<4;corner++){const cx=(corner===0||corner===3?1:-1)*(w/2-r),cy=(corner<2?1:-1)*(h/2-r);for(let i=0;i<=12;i++){const a=(corner*Math.PI/2)+i/12*Math.PI/2;outline.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}}
@@ -108,14 +109,14 @@ export function startCinematicMotion(stage,label,method,outcome,{reduced=false,o
   let renderer;
   try{renderer=new T.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'high-performance',preserveDrawingBuffer:true});}
   catch(e){stage.dataset.renderer='unavailable';throw new Error('このブラウザで3D画面を開始できませんでした。別の決め方をお試しください。');}
-  renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.28;
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=.92;
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
   const scene=new T.Scene(),camera=new T.PerspectiveCamera(34,1,.1,40);
   camera.position.set(0,4.7,5.6);camera.lookAt(0,.1,0);
-  const pmrem=new T.PMREMGenerator(renderer),room=new RoomEnvironment();const env=pmrem.fromScene(room,.04);scene.environment=env.texture;scene.environmentIntensity=1.15;room.dispose();pmrem.dispose();
-  scene.add(new T.HemisphereLight(0xfffbf1,0xf1dbe7,2.1));
-  const key=new T.DirectionalLight(0xfff5e5,3.7);key.position.set(-3.5,6,4);key.castShadow=true;key.shadow.mapSize.set(1024,1024);key.shadow.camera.left=-4;key.shadow.camera.right=4;key.shadow.camera.top=4;key.shadow.camera.bottom=-4;key.shadow.normalBias=.025;key.shadow.bias=-.0001;scene.add(key);
-  const fill=new T.DirectionalLight(0xffdbea,1.6);fill.position.set(4,3,-2);scene.add(fill);
+  const pmrem=new T.PMREMGenerator(renderer),room=new RoomEnvironment();const env=pmrem.fromScene(room,.04);scene.environment=env.texture;scene.environmentIntensity=.65;room.dispose();pmrem.dispose();
+  scene.add(new T.HemisphereLight(0xfffbf1,0xf1dbe7,.85));
+  const key=new T.DirectionalLight(0xfff5e5,1.7);key.position.set(-3.5,6,4);key.castShadow=true;key.shadow.mapSize.set(1024,1024);key.shadow.camera.left=-4;key.shadow.camera.right=4;key.shadow.camera.top=4;key.shadow.camera.bottom=-4;key.shadow.normalBias=.025;key.shadow.bias=-.0001;scene.add(key);
+  const fill=new T.DirectionalLight(0xffdbea,.55);fill.position.set(4,3,-2);scene.add(fill);
   const floor=new T.Mesh(new T.CircleGeometry(5,96),new T.MeshStandardMaterial({color:0xfff5f0,roughness:.93,metalness:0}));floor.rotation.x=-Math.PI/2;floor.position.y=-.025;floor.receiveShadow=true;scene.add(floor);
   const contactMap=shadowTexture(),contact=new T.Mesh(new T.PlaneGeometry(2.6,2.6),new T.MeshBasicMaterial({map:contactMap,transparent:true,depthWrite:false,opacity:.75}));contact.rotation.x=-Math.PI/2;contact.position.y=-.02;scene.add(contact);
   const halo=new T.Mesh(new T.RingGeometry(2.12,2.13,96),new T.MeshBasicMaterial({color:0xd7b99c,transparent:true,opacity:.25,side:T.DoubleSide}));halo.rotation.x=-Math.PI/2;halo.position.y=-.014;scene.add(halo);
@@ -140,7 +141,7 @@ export function startCinematicMotion(stage,label,method,outcome,{reduced=false,o
     chosen.root.rotation.set(mix(-Math.PI/2,-.035,take),Math.PI*turn,mix(sign*-.12,0,take));
     other.root.position.x=mix(other.root.position.x,-sign*2.8,take);other.root.position.z=mix(other.root.position.z,-1.3,take);other.root.rotation.z+=take*.28;
     const bend=(between(t,8.3,11.7)*.29+between(t,11.7,12.5)*.055)*(1-between(t,13.35,14.8));chosen.bend(reduced?bend*.2:bend);
-    const camClose=reduced?close*.75:close;camera.position.set(mix(0,.12,camClose),mix(4.7,1.6,camClose),mix(5.6,5.3,camClose));target.set(0,mix(.1,1.12,camClose),.08);camera.lookAt(target);
+    const camClose=reduced?close*.75:close;camera.position.set(mix(0,.12,camClose),mix(4.7,1.6,camClose),mix(5.6,4.8,camClose));target.set(0,mix(.1,1.12,camClose),.08);camera.lookAt(target);
     contact.position.x=chosen.root.position.x;contact.scale.set(1.2,1.25,1);contact.material.opacity=mix(.72,.25,take);
     key.position.x=mix(-3.5,2.4,between(t,8,12.2));
     if(t<.85)cue('prepare','選んだのは、この1枚。');else if(t<4.3)cue('shuffle','');else if(t<8.3)cue('focus','あなたの1枚を、手もとへ。');else if(t<13.2)cue('suspense','');else if(t<15.12)cue('reveal','オープン。');else cue('settled','');
@@ -168,7 +169,7 @@ export function startCinematicMotion(stage,label,method,outcome,{reduced=false,o
   }
   let lastSettled=false;
   function frame(now){if(!alive||pausedAt!==null)return;const elapsed=Math.min(total,now-start),t=elapsed/1000;
-    method==='cards'?cardsFrame(t):coinFrame(t);renderer.render(scene,camera);
+    stage.dataset.elapsedMs=String(Math.round(elapsed));method==='cards'?cardsFrame(t):coinFrame(t);renderer.render(scene,camera);
     if(stage.dataset.visibleResult&&!lastSettled){lastSettled=true;sound('land',.033);}
     if(elapsed>=total){completed=true;stage.dataset.phase='done';onComplete();return;}
     raf=requestAnimationFrame(frame);
