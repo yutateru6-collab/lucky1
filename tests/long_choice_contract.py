@@ -88,6 +88,21 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                 assert page.locator('#quick-result').is_hidden(),f'{method}: result arrived before target'
                 if method=='cards':assert page.locator('.quick-card-front').all_text_contents()==['','']
                 page.screenshot(path=str(out/f'{method}-before-reveal.png'))
+                # Inspect the final physical pose while it is still rendered. Reading
+                # getComputedStyle after #quick-idle is display:none yields 'none',
+                # even if the visible wheel previously stopped at the correct angle.
+                wait_elapsed(page,DURATIONS[method]*.985)
+                assert page.locator('#quick-result').is_hidden()
+                assert page.locator('.quick-animation-visual').is_visible()
+                pose=page.evaluate('''method=>{
+                  const read=selector=>{const e=document.querySelector(selector);const t=getComputedStyle(e).transform;return {e,t,m:new DOMMatrixReadOnly(t)}};
+                  if(method==='roulette'){const {e,t,m}=read('.quick-roulette-wheel');return {transform:t,slot:Number(e.dataset.slot),angle:Math.atan2(m.b,m.a)*180/Math.PI};}
+                  if(method==='coin'){const {e,t,m}=read('.quick-anim-coin');return {transform:t,landed:e.dataset.landed,frontNormalZ:m.m33};}
+                  if(method==='dice'){const {e,t,m}=read('.quick-anim-die');const sides=[...e.querySelectorAll('.quick-die-face')].map((side,i)=>{const f=new DOMMatrixReadOnly(getComputedStyle(side).transform);return {face:i+1,z:m.multiply(f).m33};});return {transform:t,face:Number(e.dataset.face),front:sides.sort((a,b)=>b.z-a.z)[0]};}
+                  if(method==='cards'){const {e,t,m}=read('.quick-anim-card.chosen .quick-card-inner');return {transform:t,frontNormalZ:m.m33,revealed:e.parentElement.dataset.revealed};}
+                  return {hands:[...document.querySelectorAll('.quick-rps-hand')].map(e=>e.textContent)};
+                }''',method)
+                case['finalVisiblePose']=pose;save_report()
                 expect(page.locator('#quick-result')).to_be_visible(timeout=6000)
                 elapsed=page.evaluate('window.__revealMs');case['elapsedMs']=elapsed
                 assert DURATIONS[method]-35<=elapsed<=DURATIONS[method]+4000,(method,elapsed)
@@ -95,21 +110,27 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                 assert text in ['やってみる！','今回はやらない'];case.update(result=text,detail=detail)
                 if method=='coin':
                     landed=page.locator('.quick-anim-coin').get_attribute('data-landed')
+                    assert pose['landed']==landed
+                    assert pose['transform']!='none'
+                    assert (pose['frontNormalZ']>.99 if landed=='heads' else pose['frontNormalZ']<-.99),pose
                     assert (text=='やってみる！')==(pick==landed)
                     assert ('選んだ面：'+('表' if pick=='heads' else '裏')) in detail
                     assert page.locator('#quick-result-icon').inner_text()==('表' if landed=='heads' else '裏')
                 elif method=='cards':
                     assert page.locator('.quick-anim-card.chosen').get_attribute('data-revealed')==('yes' if text=='やってみる！' else 'no')
+                    assert pose['frontNormalZ']<-.99 and pose['revealed']==('yes' if text=='やってみる！' else 'no'),pose
                     assert ('選んだカード：'+('左' if pick=='left' else '右')) in detail
                 elif method=='dice':
                     face=int(page.locator('.quick-anim-die').get_attribute('data-face'))
+                    assert pose['face']==face and pose['front']['face']==face and pose['front']['z']>.99,pose
                     assert (text=='やってみる！')==(face%2==1)
                     assert page.locator('#quick-result-icon').inner_text()==str(face)
                 elif method=='roulette':
                     slot=int(page.locator('.quick-roulette-wheel').get_attribute('data-slot'))
                     assert (text=='やってみる！')==(slot<=4)
-                    angle=page.locator('.quick-roulette-wheel').evaluate("el=>{let m=new DOMMatrixReadOnly(getComputedStyle(el).transform);return Math.atan2(m.b,m.a)*180/Math.PI}")
-                    assert abs((((slot-.5)*45+angle+180)%360)-180)<.1
+                    assert pose['slot']==slot and pose['transform']!='none',pose
+                    angle=pose['angle']
+                    assert abs((((slot-.5)*45+angle+180)%360)-180)<.1,pose
                 else:
                     assert ('勝ち' if text=='やってみる！' else '負け') in detail
                 page.screenshot(path=str(out/f'{method}-result.png'))
