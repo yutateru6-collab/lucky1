@@ -4,7 +4,7 @@ This is intentionally a public-URL test, not a localhost test.  It captures two
 frames during each quick-choice method and requires their pixel hashes to differ.
 It also reports what happens under prefers-reduced-motion.
 """
-import hashlib, json, os, pathlib, time
+import hashlib, json, os, pathlib, re, time
 from playwright.sync_api import sync_playwright, expect
 
 URL=os.environ.get('LUCKY_PUBLIC_URL','https://lucky1.itisnowornever271.workers.dev/')
@@ -16,7 +16,13 @@ METHODS={
   'rps':'.quick-rps-player:first-child .quick-rps-hand',
   'roulette':'.quick-roulette-wheel',
 }
-report={'url':URL,'browsers':{},'passed':True}
+EXPECTED=os.environ.get('EXPECTED_VERSION','').strip()
+STRICT_REDUCED=os.environ.get('REQUIRE_REDUCED_MOTION','0')=='1'
+if EXPECTED=='source':
+  source=(pathlib.Path('public')/'index.html').read_text()
+  m=re.search(r'lucky-version\" content=\"([^\"]+)',source)
+  EXPECTED=m.group(1) if m else ''
+report={'url':URL,'expectedVersion':EXPECTED or None,'strictReducedMotion':STRICT_REDUCED,'browsers':{},'passed':True}
 
 def digest(data): return hashlib.sha256(data).hexdigest()
 
@@ -36,9 +42,15 @@ with sync_playwright() as p:
       page=ctx.new_page()
       errors=[]
       page.on('pageerror',lambda e: errors.append(str(e)))
-      response=page.goto(URL+'?public-animation='+str(time.time_ns()),wait_until='networkidle')
-      assert response and response.status==200
-      expect(page.locator('meta[name="lucky-version"]')).to_have_attribute('content','4.0.5')
+      response=None
+      for attempt in range(18):
+        response=page.goto(URL+'?public-animation='+str(time.time_ns()),wait_until='networkidle')
+        assert response and response.status==200
+        current=page.locator('meta[name="lucky-version"]').get_attribute('content')
+        if not EXPECTED or current==EXPECTED: break
+        page.wait_for_timeout(5000)
+      if EXPECTED:
+        assert page.locator('meta[name="lucky-version"]').get_attribute('content')==EXPECTED, (browser_name,reduced,EXPECTED,page.locator('meta[name="lucky-version"]').get_attribute('content'))
       expect(page.locator('#quick-start-home')).to_be_visible()
       mode_report={'errors':errors,'methods':{}}
       for method,selector in METHODS.items():
@@ -59,10 +71,10 @@ with sync_playwright() as p:
         if page.locator(selector).count()==1:
           transform2=page.locator(selector).evaluate("el=>getComputedStyle(el).transform")
         changed=digest(frame1)!=digest(frame2)
-        if reduced=='no-preference':
-          assert page.locator(selector).count()==1, f'{browser_name}/{method}: motion element missing'
-          assert transform1!=transform2, f'{browser_name}/{method}: transform did not change'
-          assert changed, f'{browser_name}/{method}: rendered frames identical'
+        if reduced=='no-preference' or STRICT_REDUCED:
+          assert page.locator(selector).count()==1, f'{browser_name}/{reduced}/{method}: motion element missing'
+          assert transform1!=transform2, f'{browser_name}/{reduced}/{method}: transform did not change'
+          assert changed, f'{browser_name}/{reduced}/{method}: rendered frames identical'
         mode_report['methods'][method]={
           'frameChanged':changed,
           'transform1':transform1,
