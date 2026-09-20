@@ -22,7 +22,11 @@ try:
         assert page.locator('#quick-animation-stage').is_hidden() and page.locator('#quick-result').is_hidden()
         assert page.locator('#quick-draw').is_disabled()
         page.locator('#quick-close').click()
-        page.evaluate('navigator.serviceWorker.ready');page.wait_for_function('navigator.serviceWorker.controller!==null')
+        page.evaluate('navigator.serviceWorker.ready')
+        for _ in range(100):
+            if page.evaluate('() => navigator.serviceWorker.controller !== null'):break
+            page.wait_for_timeout(100)
+        assert page.evaluate('() => navigator.serviceWorker.controller !== null')
         ctx.set_offline(True);page.reload(wait_until='domcontentloaded');page.locator('#quick-start-home').click()
         page.locator('[data-quick-pick="left"]').click();page.locator('#quick-draw').click()
         expect(page.locator('.quick-cards-wrap')).to_be_visible();page.wait_for_timeout(18000)
