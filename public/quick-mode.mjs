@@ -147,7 +147,7 @@ function cardsAnimation(outcome, visual, run) {
   for (let i = 0; i < 2; i++) {
     const card = node('div', 'quick-anim-card' + (i === chosen ? ' chosen' : ''));
     const inner = node('div', 'quick-card-inner');
-    inner.append(node('span', 'quick-card-back', '✦'), node('span', 'quick-card-front', outcome.result === 'yes' ? '♥' : '♠'));
+    inner.append(node('span', 'quick-card-back', '✦'), node('span', 'quick-card-front ' + (outcome.result === 'yes' ? 'yes' : 'no'), outcome.result === 'yes' ? '♥' : '♠'));
     card.append(inner);
     wrap.append(card);
   }
