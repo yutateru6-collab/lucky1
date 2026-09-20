@@ -28,11 +28,12 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install Blender and Japanese glyph support
-        run: sudo apt-get update -qq && sudo apt-get install -y blender fonts-noto-cjk
+        run: sudo apt-get update -qq && sudo apt-get install -y blender python3-numpy fonts-noto-cjk
       - name: Build original asset and local renderer
         run: |
-          npm install --prefix scripts/reveal --no-audit --no-fund
-          blender --background --threads 2 --python scripts/reveal/make_coin.py
+          npm ci --prefix scripts/reveal --no-audit --no-fund
+          env -u LD_LIBRARY_PATH -u PYTHONPATH -u PYTHONHOME blender --background --threads 2 --python-exit-code 1 --python scripts/reveal/make_coin.py
+          test -s public/reveal/lucky-coin.glb
           NODE_PATH="$PWD/scripts/reveal/node_modules" scripts/reveal/node_modules/.bin/esbuild src/reveal/cinematic.mjs --bundle --format=esm --minify --target=es2022 --outfile=public/reveal/cinematic.mjs --legal-comments=external
           cp scripts/reveal/node_modules/three/LICENSE public/reveal/THIRD_PARTY_LICENSES.txt
           python scripts/reveal/integrate.py
