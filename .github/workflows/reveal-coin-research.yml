@@ -1,0 +1,69 @@
+name: Coin and reveal reference observation (no deployment)
+on:
+  push:
+    branches: ['research/reveal-references-20260921']
+    paths: ['.github/workflows/reveal-coin-research.yml']
+permissions:
+  contents: read
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.57.0 requests
+      - run: python -m playwright install --with-deps chromium
+      - name: Record public FlipSimu interaction and collect official example diagrams
+        run: |
+          mkdir -p coin-reference
+          cat > /tmp/observe.py <<'PY'
+          import json,time,re
+          from pathlib import Path
+          import requests
+          from playwright.sync_api import sync_playwright
+          out=Path('coin-reference'); report={'errors':[],'purpose':'public reference research; not a Lucky deployment or quality test'}
+          for name in ['big_img','action_img']:
+            url='https://www.sanyobussan.co.jp/products/pk_bigsea5/img/'+name+'.jpg'
+            try:
+              r=requests.get(url,timeout=20);r.raise_for_status();(out/(name+'.jpg')).write_bytes(r.content)
+              report[name]={'url':url,'status':r.status_code,'bytes':len(r.content)}
+            except Exception as e:report['errors'].append(str(e))
+          with sync_playwright() as p:
+            browser=p.chromium.launch(headless=True)
+            ctx=browser.new_context(viewport={'width':1100,'height':900},record_video_dir=str(out/'videos'),record_video_size={'width':900,'height':736})
+            page=ctx.new_page();page.on('pageerror',lambda e:report['errors'].append(str(e)))
+            try:
+              response=page.goto('https://flipsimu.com/',wait_until='domcontentloaded',timeout=40000)
+              page.wait_for_timeout(5000)
+              report.update(url=page.url,status=response.status,title=page.title())
+              (out/'page.html').write_text(page.content());(out/'text.txt').write_text(page.locator('body').inner_text())
+              report['buttons']=page.locator('button').all_text_contents()
+              page.screenshot(path=str(out/'before.png'))
+              options=page.get_by_role('button',name='FLIP',exact=True)
+              selected=None
+              for i in range(options.count()):
+                if options.nth(i).is_visible():selected=options.nth(i);break
+              if selected is None:raise RuntimeError('No visible exact FLIP control; no interaction guessed')
+              selected.scroll_into_view_if_needed();box=selected.bounding_box()
+              report['control']=box
+              page.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2)
+              page.mouse.down();page.wait_for_timeout(650);page.screenshot(path=str(out/'held.png'));page.mouse.up()
+              start=time.monotonic()
+              for i,ms in enumerate([100,250,400,500,650,850,1500]):
+                page.wait_for_timeout(ms)
+                page.screenshot(path=str(out/('released-'+str(i)+'.png')))
+                report.setdefault('frames',[]).append({'file':'released-'+str(i)+'.png','elapsed':round(time.monotonic()-start,3)})
+              report['afterText']=page.locator('body').inner_text()[:7000]
+            except Exception as e:report['errors'].append(str(e))
+            finally:ctx.close();browser.close()
+          (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2));print(json.dumps(report,ensure_ascii=False,indent=2))
+          PY
+          python /tmp/observe.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coin-and-pachinko-reference-evidence
+          path: coin-reference/
+          retention-days: 7
