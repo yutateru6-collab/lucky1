@@ -16,7 +16,7 @@ test('HTML has no external third-party scripts or inline handlers', async () => 
   assert.equal(ids.length, new Set(ids).size);
 });
 test('user content is inserted as text, not executable HTML', async () => {
-  for (const file of ['public/app.mjs', 'public/quick-mode.mjs']) {
+  for (const file of ['public/app.mjs', 'public/quick-mode.mjs', 'public/quick-draw.mjs', 'public/quick-motion.mjs']) {
     const app = await read(file);
     assert.doesNotMatch(app, /innerHTML|outerHTML|insertAdjacentHTML|eval\(/);
     assert.doesNotMatch(app, /fetch\(|XMLHttpRequest|sendBeacon|WebSocket/);
@@ -26,7 +26,7 @@ test('vendored Anime.js and its license are shipped locally', async () => {
   await access(new URL('public/vendor/anime.esm.min.js', root));
   const license = await read('public/vendor/anime.LICENSE.md');
   assert.match(license, /MIT License/i);
-  const quick = await read('public/quick-mode.mjs');
+  const quick = await read('public/quick-motion.mjs');
   assert.match(quick, /from '\.\/vendor\/anime\.esm\.min\.js'/);
 });
 
@@ -35,5 +35,5 @@ test('security headers and offline version are present', async () => {
   assert.match(headers, /Content-Security-Policy/);
   assert.match(headers, /camera=\(\), microphone=\(\), geolocation=\(\)/);
   const sw = await read('public/sw.js');
-  assert.match(sw, /lucky-shell-v4\.0\.7/);
+  assert.match(sw, /lucky-shell-v4\.0\.8/);
 });
