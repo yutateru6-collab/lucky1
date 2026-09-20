@@ -7,6 +7,18 @@ from playwright.sync_api import expect
 DURATIONS = {'coin':15500,'cards':17000,'dice':16350,'rps':15000,'roulette':20000}
 LABELS = {'coin':'コイン','cards':'カード','dice':'サイコロ','rps':'じゃんけん','roulette':'ルーレット'}
 
+def wait_elapsed(page, target_ms):
+    # Poll from the test runner; wait_for_function(string) injects eval blocked by the real CSP.
+    # Keep the production CSP intact and the application clock at its normal rate.
+    deadline = time.monotonic() + target_ms / 1000 + 5
+    while time.monotonic() < deadline:
+        elapsed = page.evaluate('() => window.__startedMs === null ? null : performance.now() - window.__startedMs')
+        assert elapsed is not None, 'draw start was not observed'
+        if elapsed >= target_ms:
+            return elapsed
+        page.wait_for_timeout(min(100, target_ms - elapsed))
+    raise AssertionError(f'elapsed time did not reach {target_ms} ms')
+
 def run_contract(pw, browser_name, motion, url, out, expected, methods=None, videos=True):
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     launch={'headless':True}
@@ -68,11 +80,11 @@ def run_contract(pw, browser_name, motion, url, out, expected, methods=None, vid
                 case['visibleArtChanged']=hashlib.sha256(a).digest()!=hashlib.sha256(b).digest()
                 assert case['visibleArtChanged'],f'{method}: artwork did not change'
                 # This is the point where the OLD 3–4s animation had already finished.
-                page.wait_for_function('performance.now()-window.__startedMs>=6000')
+                wait_elapsed(page,6000)
                 assert page.locator('#quick-result').is_hidden(),f'{method}: revealed within 6s'
                 assert page.evaluate("localStorage.getItem('lucky.records.v2')") is None
                 page.screenshot(path=str(out/f'{method}-after-6s.png'))
-                page.wait_for_function(f'performance.now()-window.__startedMs>={DURATIONS[method]-1600}')
+                wait_elapsed(page,DURATIONS[method]-1600)
                 assert page.locator('#quick-result').is_hidden(),f'{method}: result arrived before target'
                 if method=='cards':assert page.locator('.quick-card-front').all_text_contents()==['','']
                 page.screenshot(path=str(out/f'{method}-before-reveal.png'))
