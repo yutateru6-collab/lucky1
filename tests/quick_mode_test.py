@@ -23,13 +23,13 @@ try:
     assert page.locator('#quick-dialog textarea:visible').count()==0
 
     methods={
-      'coin':('🪙 コインで決めました','.quick-anim-coin'),
-      'cards':('🃏 カードで決めました','.quick-cards-wrap'),
-      'dice':('🎲 サイコロで決めました','.quick-anim-die'),
-      'rps':('✌️ じゃんけんで決めました','.quick-rps-wrap'),
-      'roulette':('🎡 ルーレットで決めました','.quick-roulette-wheel')
+      'coin':('🪙 コインで決めました','.quick-anim-coin','.quick-anim-coin'),
+      'cards':('🃏 カードで決めました','.quick-cards-wrap','.quick-anim-card:first-child'),
+      'dice':('🎲 サイコロで決めました','.quick-anim-die','.quick-anim-die'),
+      'rps':('✌️ じゃんけんで決めました','.quick-rps-wrap','.quick-rps-hand:first-of-type'),
+      'roulette':('🎡 ルーレットで決めました','.quick-roulette-wheel','.quick-roulette-wheel')
     }
-    for i,(method,(label,visual)) in enumerate(methods.items()):
+    for i,(method,(label,visual,moving)) in enumerate(methods.items()):
       page.locator(f'[data-quick-method="{method}"]').click()
       assert page.locator(f'[data-quick-method="{method}"]').get_attribute('aria-pressed')=='true'
       page.locator('#quick-draw').click()
@@ -38,6 +38,10 @@ try:
       expect(page.locator(visual)).to_be_visible()
       assert page.locator('#quick-result').is_hidden()
       assert page.locator(f'[data-quick-method="{method}"]').is_disabled()
+      first_transform=page.locator(moving).evaluate("el=>getComputedStyle(el).transform")
+      page.wait_for_timeout(140)
+      second_transform=page.locator(moving).evaluate("el=>getComputedStyle(el).transform")
+      assert first_transform != second_transform, f"{method} did not visibly animate"
       expect(page.locator('#quick-result-title')).to_have_text('やってみる！', timeout=4000)
       expect(page.locator('#quick-result-method')).to_have_text(label)
       assert page.evaluate("localStorage.getItem('lucky.records.v2')") is None
@@ -74,4 +78,4 @@ try:
     ctx.close();browser.close()
 finally:
   server.terminate();server.wait(timeout=5)
-print(json.dumps({'passed':True,'checks':['root UI keeps primary CTA','five methods remain selectable','coin flip stage renders','card shuffle stage renders','dice roll stage renders','rps battle stage renders','roulette spin stage renders','result appears only after animation','repeated/closed animation cannot create a record','selected method is saved only with optional memo','last method is remembered','quick mode works offline']},ensure_ascii=False))
+print(json.dumps({'passed':True,'checks':['root UI keeps primary CTA','five methods remain selectable','Anime.js changes transforms over time for every method','coin flip stage renders','card shuffle stage renders','dice roll stage renders','rps battle stage renders','roulette spin stage renders','result appears only after animation','repeated/closed animation cannot create a record','selected method is saved only with optional memo','last method is remembered','quick mode works offline']},ensure_ascii=False))
