@@ -23,7 +23,21 @@ function bounded(promise, ms) {
 export function startDecisionMotion(stage, label, method, outcome, { reduced = false, onComplete = () => {} } = {}) {
   let alive = true, completed = false, engine = null, monitor = null, lastProgress = -1, lastTick = performance.now();
   const cinematic = ['coin', 'cards'].includes(method), total = QUICK_DURATIONS[method];
-  const done = () => { if (!alive || completed) return; completed = true; clearInterval(monitor); stage.dataset.phase = 'done'; stage.dataset.visibleResult = outcome.result; if (outcome.landed) stage.dataset.landed = outcome.landed; if (method === 'cards') stage.dataset.selectedCard = String(outcome.chosenCard); onComplete(); };
+  const done = () => {
+    if (!alive || completed) return;
+    completed = true; clearInterval(monitor);
+    // A flattened CSS-3D stack must never leave the opposite face on screen.
+    // The fallback still performs the full toss; the settled face is a single layer.
+    if (stage.dataset.renderer === 'fallback' && method === 'coin') {
+      const face = make('div', 'quick-static-coin', outcome.landed === 'heads' ? '表' : '裏');
+      face.dataset.landed = outcome.landed;
+      stage.querySelector('.quick-coin-wrap')?.replaceChildren(face);
+    }
+    stage.dataset.phase = 'done'; stage.dataset.visibleResult = outcome.result;
+    if (outcome.landed) stage.dataset.landed = outcome.landed;
+    if (method === 'cards') stage.dataset.selectedCard = String(outcome.chosenCard);
+    onComplete();
+  };
   stage.classList.add('reveal-stage'); stage.hidden = false;
   stage.dataset.method = method; stage.dataset.renderer = 'loading'; stage.dataset.phase = 'loading';
   stage.dataset.durationMs = String(total); stage.dataset.elapsedMs = '0'; stage.removeAttribute('data-visible-result'); stage.removeAttribute('data-pose');
