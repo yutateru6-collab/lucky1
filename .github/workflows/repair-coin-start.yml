@@ -1,0 +1,55 @@
+name: Build coin start repair (branch only)
+on:
+  push:
+    branches: [fix/coin-start-both-flows-410]
+    paths: [.github/workflows/repair-coin-start.yml]
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/coin-start-both-flows-410
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Apply reviewed, checksum-guarded changes and bundle locally
+        run: |
+          set -o pipefail
+          mkdir -p recovery-build
+          python scripts/recovery410-apply.py
+          npm ci --prefix scripts/reveal --no-audit --no-fund
+          NODE_PATH="$PWD/scripts/reveal/node_modules" scripts/reveal/node_modules/.bin/esbuild src/reveal/cinematic.mjs --bundle --format=esm --minify --target=es2022 --outfile=public/reveal/cinematic.mjs --legal-comments=external
+          npm run check 2>&1 | tee recovery-build/unit.log
+          npm run build 2>&1 | tee recovery-build/build.log
+          git restore public/gentle
+      - name: Commit only scoped fixes on the review branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm scripts/recovery410-apply.py scripts/recovery410.patch.0.b64 .github/workflows/repair-coin-start.yml .github/workflows/coin-start-diagnosis.yml
+          git add public/app.mjs public/index.html public/quick-mode.mjs public/quick-motion.mjs public/reveal-runtime.mjs public/reveal/cinematic.css public/reveal/cinematic.mjs public/sw.js src/reveal/cinematic.mjs scripts/verify-live.mjs tests .github/workflows/coin-start-recovery.yml
+          git diff --cached --stat
+          git commit -m 'fix: recover both coin entry flows from loading and WebGL failures'
+          git push origin HEAD:fix/coin-start-both-flows-410
+          git archive HEAD -o recovery-build/source.tar
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install playwright==1.57.0
+      - run: python -m playwright install --with-deps webkit
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+      - name: Touch-test both paths and all interrupted-graphics paths
+        env:
+          MOTION_BROWSER: webkit
+          MOTION_PREF: reduce
+        run: python tests/coin_start_recovery.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coin-start-repair-build
+          path: |
+            recovery-build/
+            recovery-results/
+          retention-days: 7
