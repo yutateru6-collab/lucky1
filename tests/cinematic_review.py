@@ -24,7 +24,7 @@ try:
                 page=ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
                 page.add_init_script(f"Object.defineProperty(Crypto.prototype,'getRandomValues',{{value(a){{a[0]={seed};return a;}}}})")
                 try:
-                    page.goto(URL,wait_until='networkidle');expect(page.locator('meta[name="lucky-version"]')).to_have_attribute('content','4.0.9')
+                    page.goto(URL,wait_until='networkidle');expect(page.locator('meta[name="lucky-version"]')).to_have_attribute('content','4.0.10')
                     expect(page.locator('#quick-start-home')).to_be_visible()
                     if method=='cards' and seed==0:page.screenshot(path=str(OUT/'home-unchanged.png'),full_page=True)
                     page.locator('#quick-start-home').click();page.locator(f'[data-quick-method="{method}"]').click()

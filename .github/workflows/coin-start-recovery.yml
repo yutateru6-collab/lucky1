@@ -1,0 +1,56 @@
+name: Both coin flows and interrupted graphics
+on:
+  pull_request:
+    paths: ['public/**', 'src/reveal/**', 'tests/**', '.github/workflows/coin-start-recovery.yml']
+  push:
+    branches: [main]
+    paths: ['public/**', 'src/reveal/**', 'tests/**', '.github/workflows/coin-start-recovery.yml']
+permissions:
+  contents: read
+jobs:
+  recovery:
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+        motion: [no-preference, reduce]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install playwright==1.57.0
+      - run: python -m playwright install --with-deps ${{ matrix.browser }}
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+      - name: Check actual deployed source, not a cached previous release
+        if: github.event_name == 'push'
+        run: node scripts/verify-live.mjs
+      - name: Cold touch starts and network/WebGL failures in both entry flows
+        env:
+          MOTION_BROWSER: ${{ matrix.browser }}
+          MOTION_PREF: ${{ matrix.motion }}
+          LUCKY_PUBLIC_URL: ${{ github.event_name == 'push' && 'https://lucky1.itisnowornever271.workers.dev/' || '' }}
+        run: python tests/coin_start_recovery.py
+      - name: Prepare original 4.0.9 cache fixture (no account data)
+        if: matrix.motion == 'reduce'
+        run: |
+          git fetch --no-tags --depth=1 origin 21f141f47fb3446c66fb629daec9d1ebb6002184
+          mkdir -p .upgrade/old
+          git archive 21f141f47fb3446c66fb629daec9d1ebb6002184 public | tar -x -C .upgrade/old
+      - name: Upgrade original worker, preserve notes and finish both flows offline
+        if: matrix.motion == 'reduce'
+        env:
+          MOTION_BROWSER: ${{ matrix.browser }}
+        run: python tests/cache_upgrade_410.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: recovery-${{ matrix.browser }}-${{ matrix.motion }}
+          path: |
+            recovery-results/
+            upgrade-results/
+            live-verification.json
+          retention-days: 7

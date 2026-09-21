@@ -8,7 +8,7 @@ server=subprocess.Popen(['node','scripts/serve.mjs'],cwd=ROOT,stdout=subprocess.
 try:
     time.sleep(1)
     with sync_playwright() as p:
-        report=run_contract(p,'chromium','no-preference','http://127.0.0.1:4173/',ROOT/'test-results'/'quick-408','4.0.9',methods=['coin','cards','dice','rps','roulette'],videos=False)
+        report=run_contract(p,'chromium','no-preference','http://127.0.0.1:4173/',ROOT/'test-results'/'quick-408','4.0.10',methods=['coin','cards','dice','rps','roulette'],videos=False)
         browser=p.chromium.launch(headless=True,args=['--no-sandbox'])
         ctx=browser.new_context(viewport={'width':320,'height':700},locale='ja-JP',reduced_motion='reduce')
         page=ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))

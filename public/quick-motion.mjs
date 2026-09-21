@@ -6,7 +6,7 @@ const n = (tag, cls, text) => { const el = document.createElement(tag); el.class
 const PIPS = [[4],[0,8],[0,4,8],[0,2,6,8],[0,2,4,6,8],[0,2,3,5,6,8]];
 
 /** One complete, cancellable performance. No RNG calls here. No CSS loop controls the result. */
-export function startQuickMotion(stage, label, method, outcome, { reduced = false, onComplete = () => {} } = {}) {
+export function startQuickMotion(stage, label, method, outcome, { reduced = false, elapsedMs = 0, onComplete = () => {} } = {}) {
   const total = QUICK_DURATIONS[method];
   if (!total) throw new RangeError('Unknown motion');
   let alive = true, phase = '';
@@ -23,7 +23,7 @@ export function startQuickMotion(stage, label, method, outcome, { reduced = fals
   const cue = (p, name, text) => call(p, () => { phase = name; stage.dataset.phase = name; label.textContent = text; });
   const add = (target, props, start, end) => tl.add(target, { ...props, duration: at(end) - at(start) }, at(start));
   // Master clock keeps the same 15–20 second duration in both accessibility modes.
-  tl.add(clock, { ms: total, duration: total, ease: 'linear', onUpdate: () => { if (alive) fill.style.transform = `scaleX(${Math.min(1, clock.ms / total)})`; } }, 0);
+  tl.add(clock, { ms: total, duration: total, ease: 'linear', onUpdate: () => { if (alive) { fill.style.transform = `scaleX(${Math.min(1, clock.ms / total)})`; stage.dataset.elapsedMs = String(Math.round(clock.ms)); } } }, 0);
   cue(0, 'prepare', method === 'rps' ? '最初はグー…' : 'いくよ…');
   cue(.10, 'shuffle', method === 'cards' ? 'カードをシャッフル中…' : method === 'coin' ? '表か、裏か…' : method === 'rps' ? 'じゃん…' : 'まだまだ…');
   cue(.62, 'suspense', method === 'cards' ? '選んだのは、この1枚。' : method === 'rps' ? 'けん…' : 'そろそろ…？');
@@ -159,6 +159,7 @@ export function startQuickMotion(stage, label, method, outcome, { reduced = fals
     call(.96, () => { wheel.dataset.slot = String(outcome.slot); });
   }
   // All reveal animations end before this master clock. User cannot trigger an early result.
+  if (elapsedMs > 0) tl.seek(Math.min(total, elapsedMs));
   tl.play();
   return { duration: total, cancel() { alive = false; tl.cancel(); }, get phase() { return phase; } };
 }

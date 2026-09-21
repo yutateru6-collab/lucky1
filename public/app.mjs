@@ -1,3 +1,4 @@
+import { startDecisionMotion, warmReveal } from './reveal-runtime.mjs';
 import { needsHumanJudgment, RESULT_LABELS, CHOICE_LABELS, FEELING_LABELS } from './decision.mjs';
 import { GAMES, HANDS, playGame, randomInt } from './games.mjs';
 import { RECORD_KEY, LEGACY_KEY, MOODS, dateKey, monthDays, loadEntries, putEntry, removeEntry, parseBackup, mergeEntries } from './journal.mjs';
@@ -25,9 +26,9 @@ const UI_MOODS={
  courage:{label:'ちょっと勇気ほしい',emoji:'⭐',copy:'一歩ふみだすきっかけがほしい！',method:'rps'}
 };
 const THEME_CHIPS=[['🍴','ごはん','気になっていた店に入ってみる？'],['🌳','おでかけ','いつもと違う道を歩く？'],['💬','ひとこと','気になってる人に連絡する？'],['🛍️','買いもの','気になってたものを買う？'],['👕','服','今日は明るい色の服を着てみる？'],['✨','その他','やってみる？']];
-const state={route:'home',previousTop:'home',flow:[],note:'',theme:null,beforeMood:null,beforeText:'',method:'coin',outcome:null,choice:'undecided',afterFeeling:null,reflection:'',draftId:null,selectedDay:dateKey(),shownMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1,12),selectedRecordId:null,searchQuery:'',searchCategory:'すべて',playing:false,wordFilter:'all',wordOffset:0,profileName:localStorage.getItem(PROFILE_KEY)||'らっきー'};
+const state={route:'home',previousTop:'home',flow:[],note:'',theme:null,beforeMood:null,beforeText:'',method:'coin',outcome:null,choice:'undecided',afterFeeling:null,reflection:'',draftId:null,selectedDay:dateKey(),shownMonth:new Date(new Date().getFullYear(),new Date().getMonth(),1,12),selectedRecordId:null,searchQuery:'',searchCategory:'すべて',playing:false,wordFilter:'all',wordOffset:0,profileName:(()=>{try{return localStorage.getItem(PROFILE_KEY)||'らっきー'}catch{return 'らっきー'}})()};
 const storedFavorites=readJSON(FAVORITES_KEY,[]);
-let favorites=(Array.isArray(storedFavorites)?storedFavorites:[]).filter(id=>WORDS.some(w=>w.id===id)), pendingConfirm=null, toastTimer, playSequence=0;
+let favorites=(Array.isArray(storedFavorites)?storedFavorites:[]).filter(id=>WORDS.some(w=>w.id===id)), pendingConfirm=null, toastTimer, playSequence=0, normalMotion=null, normalStage=null;
 function readJSON(key,fallback){try{const v=JSON.parse(localStorage.getItem(key)||'null');return v??fallback}catch{return fallback}}
 function writeJSON(key,value){localStorage.setItem(key,JSON.stringify(value))}
 function toast(msg){clearTimeout(toastTimer);const t=$('#toast');t.textContent=msg;t.hidden=false;toastTimer=setTimeout(()=>t.hidden=true,3600)}
@@ -41,7 +42,7 @@ function writeMeta(v){writeJSON(META_KEY,v)}
 function safeId(){try{return crypto.randomUUID()}catch{return `lucky-${Date.now()}-${Math.random().toString(36).slice(2)}`}}
 function setPressed(nodes,value,key){nodes.forEach(n=>n.setAttribute('aria-pressed',String(n.dataset[key]===value)))}
 function greeting(){const h=new Date().getHours();return h<11?'おはよう！':h<17?'こんにちは！':'こんばんは！'}
-function showView(name,{hash=true}={}){playSequence++;state.playing=false;if(!$('#'+name+'-view'))name='home';$$('.view').forEach(v=>{const on=v.dataset.view===name;v.hidden=!on;v.classList.toggle('active',on)});state.route=name;if(TOP.has(name)){state.previousTop=name;$('#bottom-nav').hidden=false;$$('#bottom-nav a').forEach(a=>{const active=a.dataset.nav===name;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});if(hash&&location.hash!==`#${name}`)history.replaceState(null,'',`#${name}`)}else{$('#bottom-nav').hidden=true}window.scrollTo({top:0,behavior:'instant'});renderRoute(name)}
+function showView(name,{hash=true}={}){if(!(state.route==='game'&&name==='result')){normalMotion?.cancel();normalMotion=null;normalStage=null;}playSequence++;state.playing=false;if(!$('#'+name+'-view'))name='home';$$('.view').forEach(v=>{const on=v.dataset.view===name;v.hidden=!on;v.classList.toggle('active',on)});state.route=name;if(TOP.has(name)){state.previousTop=name;$('#bottom-nav').hidden=false;$$('#bottom-nav a').forEach(a=>{const active=a.dataset.nav===name;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});if(hash&&location.hash!==`#${name}`)history.replaceState(null,'',`#${name}`)}else{$('#bottom-nav').hidden=true}window.scrollTo({top:0,behavior:'instant'});renderRoute(name)}
 function navigate(name){showView(name)}
 function pushFlow(name){state.flow.push(name);showView(name,{hash:false})}
 function backFlow(){state.flow.pop();const prev=state.flow.at(-1)||state.previousTop||'home';showView(prev,{hash:false})}
@@ -86,21 +87,34 @@ function renderMood(){const c=$('#mood-grid');c.replaceChildren();Object.entries
 function selectedMethodFromMood(){return state.beforeMood&&UI_MOODS[state.beforeMood]?UI_MOODS[state.beforeMood].method:state.method}
 function renderFlowMethods(){if(!METHODS[state.method])state.method=selectedMethodFromMood();$('#method-recommend-copy').textContent=state.beforeMood?`${UI_MOODS[state.beforeMood].label}な気分におすすめ：${METHODS[selectedMethodFromMood()].label}`:'どの方法も50/50。好きな遊び方を。';const c=$('#flow-methods');c.replaceChildren();METHOD_KEYS.forEach(k=>{const b=methodCard(k,false,()=>{state.method=k;renderFlowMethods()});b.classList.toggle('selected',state.method===k);b.setAttribute('aria-pressed',String(state.method===k));c.append(b)})}
 function chooseRandomMethod(){try{state.method=METHOD_KEYS[randomInt(METHOD_KEYS.length)];renderFlowMethods();toast(`${METHODS[state.method].label}にしてみよう！`)}catch(e){report(e)}}
-function renderGame(){const m=METHODS[state.method];$('#game-title').textContent=m.label;$('#game-kicker').textContent='ちいさな偶然を、ひとつ。';$('#game-note-preview').textContent=state.note||'メモなしでも、そのまま決められます。';$('#game-rule').textContent=m.rule;$('#game-status').textContent='';const stage=$('#game-stage'),ctl=$('#game-controls');stage.replaceChildren();ctl.replaceChildren();if(state.method==='coin'){const core=el('div','game-core');core.append(artwork('coin'),el('p','','表か裏か。50/50。'));stage.append(core);ctl.append(button('コインを投げる ›',()=>runGame({}),'primary-button'))}if(state.method==='dice'){const core=el('div','game-core');core.append(artwork('dice'),el('p','','奇数？ 偶数？'));stage.append(core);ctl.append(button('サイコロを振る ›',()=>runGame({}),'primary-button'))}if(state.method==='roulette'){const core=el('div','game-core');core.append(artwork('roulette'),el('p','','8マスの半分ずつ。'));stage.append(core);ctl.append(button('ルーレットを回す ›',()=>runGame({}),'primary-button'))}if(state.method==='cards'){const core=el('div','game-core card-stage');[0,1].forEach(i=>{const b=button('✦',()=>runGame({card:i}),'draw-card');b.setAttribute('aria-label',`${i?'右':'左'}のカードを引く`);core.append(b)});stage.append(core,el('p','game-status','気になる1枚を選んでね。'))}if(state.method==='rps'){const core=el('div','game-core');core.append(artwork('rps'),el('p','','あなたの手を選んでね。'));const hands=el('div','rps-options');Object.entries(HANDS).forEach(([k,v])=>{const b=button(v,()=>runGame({hand:k}));b.setAttribute('aria-label',`${({rock:'グー',scissors:'チョキ',paper:'パー'})[k]}を出す`);hands.append(b)});core.append(hands);stage.append(core)}}
-async function runGame(input){
+function renderGame(){$('#game-stage').classList.remove('has-reveal');warmReveal(state.method).catch(()=>{});const m=METHODS[state.method];$('#game-title').textContent=m.label;$('#game-kicker').textContent='ちいさな偶然を、ひとつ。';$('#game-note-preview').textContent=state.note||'メモなしでも、そのまま決められます。';$('#game-rule').textContent=m.rule;$('#game-status').textContent='';const stage=$('#game-stage'),ctl=$('#game-controls');stage.replaceChildren();ctl.replaceChildren();if(state.method==='coin'){const core=el('div','game-core');core.append(artwork('coin'),el('p','','表か裏か。50/50。'));stage.append(core);ctl.append(button('コインを投げる ›',()=>runGame({}),'primary-button'))}if(state.method==='dice'){const core=el('div','game-core');core.append(artwork('dice'),el('p','','奇数？ 偶数？'));stage.append(core);ctl.append(button('サイコロを振る ›',()=>runGame({}),'primary-button'))}if(state.method==='roulette'){const core=el('div','game-core');core.append(artwork('roulette'),el('p','','8マスの半分ずつ。'));stage.append(core);ctl.append(button('ルーレットを回す ›',()=>runGame({}),'primary-button'))}if(state.method==='cards'){const core=el('div','game-core card-stage');[0,1].forEach(i=>{const b=button('✦',()=>runGame({card:i}),'draw-card');b.setAttribute('aria-label',`${i?'右':'左'}のカードを引く`);core.append(b)});stage.append(core,el('p','game-status','気になる1枚を選んでね。'))}if(state.method==='rps'){const core=el('div','game-core');core.append(artwork('rps'),el('p','','あなたの手を選んでね。'));const hands=el('div','rps-options');Object.entries(HANDS).forEach(([k,v])=>{const b=button(v,()=>runGame({hand:k}));b.setAttribute('aria-label',`${({rock:'グー',scissors:'チョキ',paper:'パー'})[k]}を出す`);hands.append(b)});core.append(hands);stage.append(core)}}
+function runGame(input){
  if(state.playing||state.route!=='game')return;
  if(needsHumanJudgment(`${state.note} ${state.beforeText}`)){toast('これは偶然に任せず、人や専門家と一緒に判断してください。');return}
- const token=playSequence;state.playing=true;const stage=$('#game-stage');
- const controls=$$('#game-controls button, #game-stage button');controls.forEach(b=>b.disabled=true);stage.classList.add('is-playing');stage.setAttribute('aria-busy','true');
+ const token=playSequence, method=state.method, stage=$('#game-stage');
  try{
-  const out=playGame(state.method,input);
-  if(!matchMedia('(prefers-reduced-motion: reduce)').matches)await new Promise(resolve=>setTimeout(resolve,700));
-  if(token!==playSequence||state.route!=='game')return;
+  const out=playGame(method,input);
   if(out.result===null){$('#game-status').textContent=`${out.detail} · あいこ！もう一度。`;return}
-  state.outcome=out;state.choice='undecided';state.afterFeeling=null;state.reflection='';pushFlow('result');
- }catch(e){if(token===playSequence)report(e)}finally{stage.classList.remove('is-playing');stage.removeAttribute('aria-busy');controls.forEach(b=>b.disabled=false);if(token===playSequence)state.playing=false}
+  state.playing=true;
+  $$('#game-controls button, #game-stage button').forEach(b=>b.disabled=true);
+  stage.setAttribute('aria-busy','true');stage.classList.add('has-reveal');
+  normalStage=el('div','quick-animation-stage reveal-stage');normalStage.id='normal-animation-stage';
+  stage.replaceChildren(normalStage);
+  const visibleOutcome=Object.freeze({...out,
+    ...(method==='coin'?{picked:'heads',landed:out.result==='yes'?'heads':'tails'}:{}),
+    ...(method==='cards'?{chosenCard:input.card,picked:input.card===0?'left':'right'}:{})
+  });
+  normalMotion=startDecisionMotion(normalStage,$('#game-status'),method,visibleOutcome,{
+    reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,
+    onComplete:()=>{
+      if(token!==playSequence||state.route!=='game')return;
+      stage.removeAttribute('aria-busy');state.playing=false;
+      state.outcome=out;state.choice='undecided';state.afterFeeling=null;state.reflection='';pushFlow('result');
+    }
+  });
+ }catch(e){normalMotion?.cancel();normalMotion=null;state.playing=false;stage.removeAttribute('aria-busy');renderGame();$('#game-status').textContent='開始できませんでした。もう一度お試しください。';report(e)}
 }
-function renderResult(){const yes=state.outcome?.result==='yes',m=METHODS[state.method];$('#result-method-label').textContent=`${m.label}で決めたよ！`;$('#result-title').textContent=yes?'やってみる！':'今回は見送る';$('#result-message').textContent=yes?'今日のあなたに、ちいさな一歩のきっかけ。':'見送るのも、ちゃんと自分で選べる答え。';$('#result-art').replaceChildren(artwork(state.method));$('#result-detail').textContent=state.outcome?.detail||'';const memo=$('#result-memo');memo.replaceChildren(el('small','','あなたのメモ'),el('strong','',state.note||'心の中で迷っていたこと'));const choices=$('#own-choice-buttons');choices.replaceChildren();[['yes','やってみる'],['no','今回は見送る'],['undecided','まだ決めない']].forEach(([k,label])=>{const b=button(label,()=>{state.choice=k;renderResultChoices()});b.dataset.choice=k;b.setAttribute('aria-pressed',String(state.choice===k));choices.append(b)});const aft=$('#after-feelings');if(!aft.childElementCount)Object.entries(FEELING_LABELS).forEach(([k,label])=>{const b=button(label,()=>{state.afterFeeling=state.afterFeeling===k?null:k;renderResultChoices()});b.dataset.feeling=k;aft.append(b)});$('#reflection').value=state.reflection;renderResultChoices();setTimeout(()=>$('#result-title').focus({preventScroll:true}),0)}
+function renderResult(){const yes=state.outcome?.result==='yes',m=METHODS[state.method];$('#result-method-label').textContent=`${m.label}で決めたよ！`;$('#result-title').textContent=yes?'やってみる！':'今回は見送る';$('#result-message').textContent=yes?'今日のあなたに、ちいさな一歩のきっかけ。':'見送るのも、ちゃんと自分で選べる答え。';$('#result-art').replaceChildren(normalStage||artwork(state.method));$('#result-art').classList.toggle('with-reveal',Boolean(normalStage));$('#result-detail').textContent=state.outcome?.detail||'';const memo=$('#result-memo');memo.replaceChildren(el('small','','あなたのメモ'),el('strong','',state.note||'心の中で迷っていたこと'));const choices=$('#own-choice-buttons');choices.replaceChildren();[['yes','やってみる'],['no','今回は見送る'],['undecided','まだ決めない']].forEach(([k,label])=>{const b=button(label,()=>{state.choice=k;renderResultChoices()});b.dataset.choice=k;b.setAttribute('aria-pressed',String(state.choice===k));choices.append(b)});const aft=$('#after-feelings');if(!aft.childElementCount)Object.entries(FEELING_LABELS).forEach(([k,label])=>{const b=button(label,()=>{state.afterFeeling=state.afterFeeling===k?null:k;renderResultChoices()});b.dataset.feeling=k;aft.append(b)});$('#reflection').value=state.reflection;renderResultChoices();setTimeout(()=>$('#result-title').focus({preventScroll:true}),0)}
 function renderResultChoices(){setPressed($$('#own-choice-buttons [data-choice]'),state.choice,'choice');setPressed($$('#after-feelings [data-feeling]'),state.afterFeeling,'feeling')}
 function saveResult(){if(!state.outcome)return;state.reflection=$('#reflection').value.trim();const id=safeId(),entry={version:2,id,note:state.note.slice(0,240),beforeMood:state.beforeMood,beforeText:state.beforeText.slice(0,500),game:state.method,result:state.outcome.result,choice:state.choice,feeling:state.afterFeeling,reflection:state.reflection.slice(0,1000),createdAt:new Date().toISOString(),localDate:dateKey()};try{putEntry(entry);if(state.draftId)removeDraft(state.draftId);const meta=readMeta();meta[id]={theme:state.theme};writeMeta(meta);state.selectedRecordId=id;state.selectedDay=entry.localDate;const d=new Date();state.shownMonth=new Date(d.getFullYear(),d.getMonth(),1,12);state.flow=[];toast('記録しました。');showView('record',{hash:false})}catch(e){report(e)}}
 function retryResult(){state.outcome=null;backFlow()}
@@ -131,5 +145,5 @@ function bind(){
  window.addEventListener('hashchange',()=>{const r=location.hash.slice(1);if(TOP.has(r))showView(r,{hash:false})});window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline)
 }
 function updateOnline(){$('#offline-indicator').hidden=navigator.onLine}
-function init(){initTheme();bind();const r=location.hash.slice(1);showView(TOP.has(r)?r:'home',{hash:false});updateOnline();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{})}
+function init(){initTheme();bind();const r=location.hash.slice(1);showView(TOP.has(r)?r:'home',{hash:false});updateOnline();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{})}
 init();

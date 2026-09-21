@@ -29,3 +29,19 @@
 .quick-dialog.cinematic-finished .quick-actions{margin-top:10px}
 @media(max-height:690px){.quick-dialog.cinematic-active .quick-animation-stage{height:280px;min-height:260px}.quick-dialog.cinematic-active .quick-sheet{padding:16px}.quick-dialog.cinematic-active .quick-head h2{font-size:20px}.quick-dialog.cinematic-finished .quick-animation-stage{height:260px}}
 @media(prefers-reduced-motion:reduce){.cinematic-badge{transition:none}}
+
+/* Shared stage: detailed memo flow and resilient quick start, unchanged homepage. */
+.reveal-stage{position:relative;width:100%;min-height:285px;border-radius:23px;overflow:hidden;background:radial-gradient(ellipse at 45% 30%,#fffaf1,#fff4f2 62%,#eae2f2)}
+.reveal-stage .cinematic-visual{height:100%;min-height:0;display:block;perspective:none;isolation:auto}
+.reveal-stage[data-renderer=webgl]{height:320px}
+.reveal-loading{min-height:285px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#6d5868}
+.reveal-loading p{font-size:12px;margin:0}
+.reveal-loading-mark{display:grid;place-items:center;width:82px;height:82px;border:3px double #d4ac61;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fff7d9,#e8c879);color:#896428;font-size:30px;animation:reveal-wait 1.3s ease-in-out infinite}
+@keyframes reveal-wait{50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.reveal-loading-mark{animation:none}}
+.reveal-fallback .quick-animation-visual{height:230px;min-height:230px;display:grid;place-items:center;perspective:800px;isolation:auto}
+.reveal-fallback-note{font-size:10px;line-height:1.5;margin:8px 10px;text-align:center;color:#745c7a}
+#game-stage.has-reveal{display:block;padding:0;height:auto;min-height:320px}
+#game-stage.has-reveal .reveal-stage{height:340px;min-height:320px}
+#result-art.with-reveal{display:block;width:100%;height:auto;margin:10px auto;max-width:440px}
+#result-art.with-reveal .reveal-stage{height:320px}
