@@ -11,16 +11,26 @@ URL=os.environ.get('LUCKY_PUBLIC_URL','http://127.0.0.1:4173/')
 OUT=ROOT/'public-animation-results'/f'{BROWSER}-{MOTION}'
 OUT.mkdir(parents=True,exist_ok=True)
 server=None
-# Deployment CI already verifies these public files using Node's standard fetch.
-# Use that same HTTP client here; the separate urllib client receives HTTP 403.
-# Keep the canonical origin, TLS validation, response status and every byte hash
-# mandatory. This does not change the app, its CSP or its network permissions.
+# A single explicit manifest drives both the HTTP verification and the Python
+# assertion. Do not use a stale numeric file count: 4.0.10 adds the shared
+# recovery runtime, which must itself match before browser tests may pass.
+PUBLIC_PATHS=(
+    'index.html','app.mjs','quick-mode.mjs','reveal-runtime.mjs',
+    'quick-draw.mjs','quick-motion.mjs','styles.css','quick-mode.css',
+    'quick-choice.css','reveal/cinematic.mjs','reveal/cinematic.css',
+    'reveal/lucky-coin.glb','reveal/THIRD_PARTY_LICENSES.txt','visuals.mjs',
+    'vendor/anime.esm.min.js','art/lucky-reference.webp','decision.mjs',
+    'games.mjs','journal.mjs','words.mjs','sw.js',
+)
+# Use the same HTTP client as deployment CI. Canonical origin, TLS validation,
+# HTTP status and every byte hash remain mandatory. Production is not changed.
 VERIFY_PUBLIC = r'''
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-const [base, version, out] = process.argv.slice(1);
+const [base, version, out, manifest] = process.argv.slice(1);
 if (base !== 'https://lucky1.itisnowornever271.workers.dev/') throw new Error('Expected the approved canonical root URL');
-const paths = ['index.html','app.mjs','quick-mode.mjs','quick-draw.mjs','quick-motion.mjs','quick-mode.css','quick-choice.css', 'reveal/cinematic.mjs', 'reveal/cinematic.css', 'reveal/lucky-coin.glb', 'reveal/THIRD_PARTY_LICENSES.txt','styles.css','vendor/anime.esm.min.js','sw.js'];
+const paths = JSON.parse(manifest);
+if (!Array.isArray(paths) || !paths.length || new Set(paths).size !== paths.length) throw new Error('Invalid verification manifest');
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const expected = Object.fromEntries(await Promise.all(paths.map(async path => [path, hash(await readFile(`public/${path}`))])));
 let report;
@@ -46,10 +56,11 @@ try:
     if URL.startswith('http://127.0.0.1:'):
         server=subprocess.Popen(['node','scripts/serve.mjs'],cwd=ROOT,stdout=subprocess.DEVNULL);time.sleep(1)
     else:
-        subprocess.run(['node','--input-type=module','-e',VERIFY_PUBLIC,URL,EXPECTED,str(OUT)],cwd=ROOT,check=True,timeout=390)
+        subprocess.run(['node','--input-type=module','-e',VERIFY_PUBLIC,URL,EXPECTED,str(OUT),json.dumps(PUBLIC_PATHS)],cwd=ROOT,check=True,timeout=390)
         proof=json.loads((OUT/'deployed-hashes.json').read_text())
         assert proof['url']==URL and proof['version']==EXPECTED
-        assert len(proof['files'])==10 and all(item['matches'] for item in proof['files'].values()),proof
+        assert set(proof['files'])==set(PUBLIC_PATHS),proof
+        assert all(item['matches'] and item['status']==200 and item['actual']==item['expected'] for item in proof['files'].values()),proof
     with sync_playwright() as p:
         report=run_contract(p,BROWSER,MOTION,URL,OUT,EXPECTED,videos=True)
     print(json.dumps(report,ensure_ascii=False,indent=2))
