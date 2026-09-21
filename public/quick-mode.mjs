@@ -1,7 +1,6 @@
-import { prepareReveal, startCinematicMotion, setRevealSound } from './reveal/cinematic.mjs';
+import { warmReveal, startDecisionMotion, setRevealSound } from './reveal-runtime.mjs';
 import { putEntry, dateKey } from './journal.mjs';
 import { QUICK_METHODS as METHODS, QUICK_DURATIONS, COIN_SIDES, hasQuickPick, drawQuick } from './quick-draw.mjs';
-import { startQuickMotion } from './quick-motion.mjs';
 
 const $ = selector => document.querySelector(selector);
 const METHOD_KEY = 'lucky.quick.method.v1';
@@ -77,6 +76,7 @@ function reset() {
 function openQuick() {
   if ($('#quick-dialog').open) return;
   reset(); $('#quick-dialog').showModal();
+  warmReveal(state.method).catch(() => {});
   ($('#quick-pick-options button') || $('#quick-draw')).focus({ preventScroll: true });
 }
 function finish() {
@@ -88,12 +88,6 @@ async function draw() {
   if (state.phase !== 'idle' || !hasQuickPick(state.method, state.pick)) return;
   try {
     const cinematic = ['coin','cards'].includes(state.method);
-    const pendingRun = state.run;
-    if (cinematic) {
-      state.phase = 'loading'; lock();
-      await prepareReveal();
-      if (pendingRun !== state.run || !$('#quick-dialog').open) return;
-    }
     // Capture immutable choice/outcome once; motion never draws or changes the result.
     state.outcome = drawQuick(state.method, state.pick); state.phase = 'animating'; state.choice = state.outcome.result;
     state.createdAt = new Date(); state.id = null;
@@ -102,7 +96,7 @@ async function draw() {
     $('#quick-pick-block').hidden = true; $('#quick-draw').hidden = true; $('#quick-result').hidden = true;
     error(); lock();
     $('#quick-dialog').classList.toggle('cinematic-active', cinematic);
-    state.motion = (cinematic ? startCinematicMotion : startQuickMotion)($('#quick-animation-stage'), $('#quick-animation-label'), method, outcome, {
+    state.motion = startDecisionMotion($('#quick-animation-stage'), $('#quick-animation-label'), method, outcome, {
       reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
       onComplete: () => {
         if (run !== state.run || !$('#quick-dialog').open || state.phase !== 'animating') return;
@@ -168,4 +162,4 @@ $('#quick-sound').addEventListener('click', () => {
   $('#quick-sound').textContent = enabled ? '音：オン' : '音：オフ';
 });
 // Preload public, local artwork only; notes never leave local storage.
-prepareReveal().catch(() => {});
+// Artwork is warmed when a decision is opened, not as a boot prerequisite.

@@ -67,7 +67,9 @@ function cardTexture(which,identity='left') {
   const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=4;textures.set(key,tex);return tex;
 }
 
-export function prepareReveal() {
+export function prepareReveal(method = 'coin') {
+  for(const i of ['left','right'])cardTexture('back',i);cardTexture('yes');cardTexture('no');
+  if(method === 'cards') return Promise.resolve();
   if(prepared)return prepared;
   prepared=(async()=>{
     const gltf=await new GLTFLoader().loadAsync(new URL('./lucky-coin.glb',import.meta.url).href);
@@ -104,7 +106,7 @@ function makeCard(identity) {
 function shadowTexture(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),v=g.createRadialGradient(64,64,1,64,64,63);v.addColorStop(0,'rgba(90,65,80,.25)');v.addColorStop(.45,'rgba(100,70,90,.1)');v.addColorStop(1,'rgba(100,70,90,0)');g.fillStyle=v;g.fillRect(0,0,128,128);return new T.CanvasTexture(c);}
 function normalOfCoin(root,side){const v=new T.Vector3(0,side==='heads'?1:-1,0);return v.applyQuaternion(root.quaternion).toArray();}
 
-export function startCinematicMotion(stage,label,method,outcome,{reduced=false,onComplete=()=>{}}={}) {
+export function startCinematicMotion(stage,label,method,outcome,{reduced=false,onComplete=()=>{},onError=()=>{}}={}) {
   const total=DURATIONS[method];if(!total)throw new Error('Unsupported cinematic scene');
   if(method==='coin'&&!template)throw new Error('コイン素材を読み込み中です。もう一度押してください。');
   const visual=node('div','quick-animation-visual cinematic-visual'), badge=node('div','cinematic-badge',method==='cards'?(outcome.picked==='left'?'左のカードを選びました':'右のカードを選びました'):(outcome.picked==='heads'?'表でいく':'裏でいく'));
@@ -174,15 +176,16 @@ export function startCinematicMotion(stage,label,method,outcome,{reduced=false,o
     stage.dataset.visibleResult=t>=13.2?outcome.result:'';stage.dataset.landed=t>=13.2?outcome.landed:'';stage.dataset.pose=JSON.stringify({normal:normalOfCoin(coin,outcome.landed),contactY:coin.position.y,tilt,focus:close});
   }
   let lastSettled=false;
-  function frame(now){if(!alive||pausedAt!==null)return;const elapsed=Math.min(total,now-start),t=elapsed/1000;
+  function frame(now){if(!alive||pausedAt!==null)return;try {const elapsed=Math.min(total,now-start),t=elapsed/1000;
     stage.dataset.elapsedMs=String(Math.round(elapsed));method==='cards'?cardsFrame(t):coinFrame(t);renderer.render(scene,camera);
     if(stage.dataset.visibleResult&&!lastSettled){lastSettled=true;sound('land',.033);}
     if(elapsed>=total){completed=true;stage.dataset.phase='done';onComplete();return;}
     raf=requestAnimationFrame(frame);
+    } catch (e) { cancelAnimationFrame(raf); onError(e); }
   }
   function visibility(){if(document.hidden){pausedAt=performance.now();cancelAnimationFrame(raf);}else if(pausedAt!==null){start+=performance.now()-pausedAt;pausedAt=null;raf=requestAnimationFrame(frame);}}
   document.addEventListener('visibilitychange',visibility);
-  function contextLost(e){e.preventDefault();label.textContent='表示が中断されました。閉じてもう一度お試しください。';cancelAnimationFrame(raf);}
+  function contextLost(e){e.preventDefault();cancelAnimationFrame(raf);onError(new Error('WebGL context lost'));}
   canvas.addEventListener('webglcontextlost',contextLost);raf=requestAnimationFrame(frame);
   return {duration:total,cancel(){if(!alive)return;alive=false;cancelAnimationFrame(raf);observer.disconnect();document.removeEventListener('visibilitychange',visibility);canvas.removeEventListener('webglcontextlost',contextLost);scene.traverse(o=>{if(o.isMesh&&o!==coin&&!coin?.children.includes(o)){o.geometry?.dispose();if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material?.dispose();}});env.dispose();contactMap.dispose();renderer.dispose();renderer.forceContextLoss();},get phase(){return stage.dataset.phase;}};
 }

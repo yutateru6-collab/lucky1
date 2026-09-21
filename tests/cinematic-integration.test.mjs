@@ -20,10 +20,13 @@ test('reviewed result artwork and stable caption space are included', async () =
 test('result art is retained, cancellation is guarded and audio is opt-in', async () => {
   const app = await read('public/quick-mode.mjs');
   assert.ok(app.includes("$('#quick-idle').hidden = !cinematic"));
-  assert.ok(app.includes("pendingRun !== state.run"));
+  assert.ok(app.includes('run !== state.run'));
+  const runtime = await read('public/reveal-runtime.mjs');
+  assert.ok(runtime.includes('if (!alive) return'));
+  assert.ok(runtime.includes('clearInterval(monitor)'));
   const html = await read('public/index.html');
   assert.ok(html.includes('id="quick-sound" type="button" aria-pressed="false"'));
-  assert.ok(html.includes('lucky-version" content="4.0.9"'));
+  assert.ok(html.includes('lucky-version" content="4.0.10"'));
   assert.ok(html.includes('./reveal/cinematic.css'));
   const source = await read('src/reveal/cinematic.mjs');
   assert.ok(source.includes('soundEnabled=false'));
